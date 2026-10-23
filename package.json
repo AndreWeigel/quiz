@@ -1,0 +1,15 @@
+{
+  "name": "quiz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Geography quiz on a globe — self-paced or live with a host",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.19.0"
+  }
+}

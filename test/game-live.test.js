@@ -5,9 +5,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
-const { basicAuth } = require('../src/web');
-const { openGameDb } = require('../src/game/db');
-const liveRoutes = require('../src/game/live');
+const { basicAuth } = require('../src/auth');
+const { openGameDb } = require('../src/db');
+const liveRoutes = require('../src/live');
 
 const auth = { authorization: 'Basic ' + Buffer.from('admin:s3cret').toString('base64') };
 const json = { 'content-type': 'application/json' };
@@ -18,7 +18,7 @@ async function withServer(fn, { relativeUploads = false } = {}) {
   const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'live-uploads-'));
   const app = express();
   app.use(express.json());
-  app.use('/game', liveRoutes({ basicAuth, db, uploadsDir: relativeUploads ? path.relative(process.cwd(), uploadsDir) : uploadsDir }));
+  app.use('/', liveRoutes({ basicAuth, db, uploadsDir: relativeUploads ? path.relative(process.cwd(), uploadsDir) : uploadsDir }));
   const server = app.listen(0);
   const base = `http://127.0.0.1:${server.address().port}`;
   const g = db.createGame('Trains');
@@ -32,64 +32,64 @@ async function withServer(fn, { relativeUploads = false } = {}) {
 }
 const post = (url, body, headers = json) =>
   fetch(url, { method: 'POST', headers, body: body === undefined ? undefined : JSON.stringify(body) });
-const next = (base, code) => post(`${base}/game/api/admin/sessions/${code}/next`, undefined, auth);
+const next = (base, code) => post(`${base}/api/admin/sessions/${code}/next`, undefined, auth);
 
 test('admin session endpoints require auth; create → lobby; list per game', async () => {
   await withServer(async ({ base, game }) => {
-    assert.equal((await post(`${base}/game/api/admin/games/${game.id}/sessions`)).status, 401);
-    const r = await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth);
+    assert.equal((await post(`${base}/api/admin/games/${game.id}/sessions`)).status, 401);
+    const r = await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth);
     assert.equal(r.status, 200);
     const { code } = await r.json();
     assert.match(code, /^[a-f0-9]{10}$/);
-    const list = await (await fetch(`${base}/game/api/admin/games/${game.id}/sessions`, { headers: auth })).json();
+    const list = await (await fetch(`${base}/api/admin/games/${game.id}/sessions`, { headers: auth })).json();
     assert.equal(list.sessions[0].code, code);
     assert.equal(list.sessions[0].state, 'lobby');
-    assert.equal((await post(`${base}/game/api/admin/games/999/sessions`, undefined, auth)).status, 404);
-    assert.equal((await fetch(`${base}/game/host/${code}`)).status, 401);
-    assert.equal((await fetch(`${base}/game/host/${code}`, { headers: auth })).status, 200);
-    assert.equal((await fetch(`${base}/game/live/${code}`)).status, 200);
-    assert.equal((await fetch(`${base}/game/live/nope`)).status, 404);
+    assert.equal((await post(`${base}/api/admin/games/999/sessions`, undefined, auth)).status, 404);
+    assert.equal((await fetch(`${base}/host/${code}`)).status, 401);
+    assert.equal((await fetch(`${base}/host/${code}`, { headers: auth })).status, 200);
+    assert.equal((await fetch(`${base}/live/${code}`)).status, 200);
+    assert.equal((await fetch(`${base}/live/nope`)).status, 404);
   });
 });
 
 test('a game with no rounds cannot go live', async () => {
   await withServer(async ({ base, db }) => {
     const empty = db.createGame('empty');
-    assert.equal((await post(`${base}/game/api/admin/games/${empty.id}/sessions`, undefined, auth)).status, 400);
+    assert.equal((await post(`${base}/api/admin/games/${empty.id}/sessions`, undefined, auth)).status, 400);
   });
 });
 
 test('join: token, duplicate name 409, bad name 400; state shows you', async () => {
   await withServer(async ({ base, game }) => {
-    const { code } = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
-    const info = await (await fetch(`${base}/game/live/api/${code}`)).json();
+    const { code } = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const info = await (await fetch(`${base}/live/api/${code}`)).json();
     assert.deepEqual(info, { title: 'Trains', roundCount: 2, state: 'lobby' });
-    const j = await post(`${base}/game/live/api/${code}/join`, { name: '  Fer ' });
+    const j = await post(`${base}/live/api/${code}/join`, { name: '  Fer ' });
     assert.equal(j.status, 200);
     const fer = await j.json();
     assert.equal(fer.name, 'Fer');
     assert.match(fer.token, /^[a-f0-9]{32}$/);
-    assert.equal((await post(`${base}/game/live/api/${code}/join`, { name: 'fer' })).status, 409);
-    assert.equal((await post(`${base}/game/live/api/${code}/join`, { name: '   ' })).status, 400);
-    assert.equal((await post(`${base}/game/live/api/nope/join`, { name: 'x' })).status, 404);
-    const snap = await (await fetch(`${base}/game/live/api/${code}/state?token=${fer.token}`)).json();
+    assert.equal((await post(`${base}/live/api/${code}/join`, { name: 'fer' })).status, 409);
+    assert.equal((await post(`${base}/live/api/${code}/join`, { name: '   ' })).status, 400);
+    assert.equal((await post(`${base}/live/api/nope/join`, { name: 'x' })).status, 404);
+    const snap = await (await fetch(`${base}/live/api/${code}/state?token=${fer.token}`)).json();
     assert.equal(snap.state, 'lobby');
     assert.equal(snap.round, null);
     assert.equal(snap.reveal, null);
     assert.deepEqual(snap.players, [{ id: fer.playerId, name: 'Fer', answered: false }]);
     assert.deepEqual(snap.you, { playerId: fer.playerId, name: 'Fer' });
     assert.deepEqual(snap.standings, [{ playerId: fer.playerId, name: 'Fer', total: 0 }]);
-    const anon = await (await fetch(`${base}/game/live/api/${code}/state`)).json();
+    const anon = await (await fetch(`${base}/live/api/${code}/state`)).json();
     assert.equal(anon.you, null);
   });
 });
 
 test('guess only while open and for the current round; upsert; hidden until reveal', async () => {
   await withServer(async ({ base, game }) => {
-    const { code } = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
-    const fer = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Fer' })).json();
-    const ana = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Ana' })).json();
-    const guess = (token, ord, lat, lng) => post(`${base}/game/live/api/${code}/guess`, { token, ord, lat, lng });
+    const { code } = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const fer = await (await post(`${base}/live/api/${code}/join`, { name: 'Fer' })).json();
+    const ana = await (await post(`${base}/live/api/${code}/join`, { name: 'Ana' })).json();
+    const guess = (token, ord, lat, lng) => post(`${base}/live/api/${code}/guess`, { token, ord, lat, lng });
 
     assert.equal((await guess(fer.token, 0, 33, 91)).status, 409); // lobby
     let snap = await (await next(base, code)).json();
@@ -106,7 +106,7 @@ test('guess only while open and for the current round; upsert; hidden until reve
     assert.equal((await guess(fer.token, 0, 33.0106, 91.6642)).status, 200); // re-tap replaces
     assert.equal((await guess(ana.token, 0, 30, 90)).status, 200);
 
-    snap = await (await fetch(`${base}/game/live/api/${code}/state?token=${fer.token}`)).json();
+    snap = await (await fetch(`${base}/live/api/${code}/state?token=${fer.token}`)).json();
     assert.deepEqual(snap.players.map((p) => [p.name, p.answered]), [['Fer', true], ['Ana', true]]);
     assert.equal(snap.reveal, null);
     assert.deepEqual(snap.standings.map((s) => s.total), [0, 0]);
@@ -126,14 +126,14 @@ test('guess only while open and for the current round; upsert; hidden until reve
 
 test('late joiner scores 0 on earlier rounds; finished → 400 on next; end from any state', async () => {
   await withServer(async ({ base, game }) => {
-    const { code } = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
-    const fer = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Fer' })).json();
+    const { code } = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const fer = await (await post(`${base}/live/api/${code}/join`, { name: 'Fer' })).json();
     await next(base, code); // open 0
-    await post(`${base}/game/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 33.0106, lng: 91.6642 });
+    await post(`${base}/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 33.0106, lng: 91.6642 });
     await next(base, code); // revealed 0
     await next(base, code); // open 1
-    const late = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Late' })).json();
-    await post(`${base}/game/live/api/${code}/guess`, { token: late.token, ord: 1, lat: 54.9, lng: -1.6 });
+    const late = await (await post(`${base}/live/api/${code}/join`, { name: 'Late' })).json();
+    await post(`${base}/live/api/${code}/guess`, { token: late.token, ord: 1, lat: 54.9, lng: -1.6 });
     await next(base, code); // revealed 1
     let snap = await (await next(base, code)).json(); // finished
     assert.equal(snap.state, 'finished');
@@ -142,9 +142,9 @@ test('late joiner scores 0 on earlier rounds; finished → 400 on next; end from
     assert.equal((await next(base, code)).status, 400);
     assert.equal((await next(base, 'nope')).status, 404);
 
-    const s2 = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const s2 = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
     await next(base, s2.code);
-    const ended = await (await post(`${base}/game/api/admin/sessions/${s2.code}/end`, undefined, auth)).json();
+    const ended = await (await post(`${base}/api/admin/sessions/${s2.code}/end`, undefined, auth)).json();
     assert.equal(ended.state, 'finished');
   });
 });
@@ -167,10 +167,10 @@ async function readEvent(reader, buf) {
 
 test('events: snapshot on connect, again on every change; headers tell nginx not to buffer', async () => {
   await withServer(async ({ base, game }) => {
-    const { code } = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
-    const fer = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Fer' })).json();
+    const { code } = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const fer = await (await post(`${base}/live/api/${code}/join`, { name: 'Fer' })).json();
     const ac = new AbortController();
-    const resp = await fetch(`${base}/game/live/api/${code}/events?token=${fer.token}`, { signal: ac.signal });
+    const resp = await fetch(`${base}/live/api/${code}/events?token=${fer.token}`, { signal: ac.signal });
     assert.equal(resp.status, 200);
     assert.match(resp.headers.get('content-type'), /^text\/event-stream/);
     assert.equal(resp.headers.get('x-accel-buffering'), 'no');
@@ -181,27 +181,27 @@ test('events: snapshot on connect, again on every change; headers tell nginx not
     assert.equal(ev.data.state, 'lobby');
     assert.deepEqual(ev.data.you, { playerId: fer.playerId, name: 'Fer' });
 
-    await post(`${base}/game/live/api/${code}/join`, { name: 'Ana' });
+    await post(`${base}/live/api/${code}/join`, { name: 'Ana' });
     ev = await readEvent(reader, buf);
     assert.deepEqual(ev.data.players.map((p) => p.name), ['Fer', 'Ana']);
 
     await next(base, code);
     ev = await readEvent(reader, buf);
     assert.equal(ev.data.state, 'open');
-    await post(`${base}/game/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 1, lng: 1 });
+    await post(`${base}/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 1, lng: 1 });
     ev = await readEvent(reader, buf);
     assert.deepEqual(ev.data.players.map((p) => p.answered), [true, false]);
     ac.abort();
-    assert.equal((await fetch(`${base}/game/live/api/nope/events`)).status, 404);
+    assert.equal((await fetch(`${base}/live/api/nope/events`)).status, 404);
   });
 });
 
 test('photo route works with a relative uploadsDir (production passes data/uploads)', async () => {
   await withServer(async ({ base, game }) => {
-    const { code } = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const { code } = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
     await next(base, code); // open 0
     await next(base, code); // revealed 0
-    const r = await fetch(`${base}/game/live/api/${code}/photo/a1b2c3d4e5f60718.jpg`);
+    const r = await fetch(`${base}/live/api/${code}/photo/a1b2c3d4e5f60718.jpg`);
     assert.equal(r.status, 200);
     assert.equal(await r.text(), 'notreallyajpeg');
   }, { relativeUploads: true });
@@ -209,8 +209,8 @@ test('photo route works with a relative uploadsDir (production passes data/uploa
 
 test('photo route serves a round photo only once that round is revealed', async () => {
   await withServer(async ({ base, game }) => {
-    const { code } = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
-    const url = `${base}/game/live/api/${code}/photo/a1b2c3d4e5f60718.jpg`;
+    const { code } = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const url = `${base}/live/api/${code}/photo/a1b2c3d4e5f60718.jpg`;
     assert.equal((await fetch(url)).status, 404); // lobby
     await next(base, code); // open 0
     assert.equal((await fetch(url)).status, 404);
@@ -218,8 +218,8 @@ test('photo route serves a round photo only once that round is revealed', async 
     const r = await fetch(url);
     assert.equal(r.status, 200);
     assert.equal(await r.text(), 'notreallyajpeg');
-    assert.equal((await fetch(`${base}/game/live/api/${code}/photo/ffffffffffffffff.jpg`)).status, 404); // not a round photo
-    assert.equal((await fetch(`${base}/game/live/api/${code}/photo/..%2Fsecret.jpg`)).status, 404);
+    assert.equal((await fetch(`${base}/live/api/${code}/photo/ffffffffffffffff.jpg`)).status, 404); // not a round photo
+    assert.equal((await fetch(`${base}/live/api/${code}/photo/..%2Fsecret.jpg`)).status, 404);
   });
 });
 
@@ -228,12 +228,12 @@ test('shape round: live guesses score by nearest point; reveal carries geometry 
     const LINE = { type: 'LineString', coordinates: [[0, 0], [10, 0]] };
     const g = db.createGame('Shapes');
     db.saveGame(g.id, 'Shapes', [{ question: 'Equator?', lat: 0, lng: 5, geometry: LINE, radius: 10 }]);
-    const { code } = await (await post(`${base}/game/api/admin/games/${g.id}/sessions`, undefined, auth)).json();
-    const fer = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Fer' })).json();
-    const ana = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Ana' })).json();
+    const { code } = await (await post(`${base}/api/admin/games/${g.id}/sessions`, undefined, auth)).json();
+    const fer = await (await post(`${base}/live/api/${code}/join`, { name: 'Fer' })).json();
+    const ana = await (await post(`${base}/live/api/${code}/join`, { name: 'Ana' })).json();
     await next(base, code); // open
-    await post(`${base}/game/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 0, lng: 7 });
-    await post(`${base}/game/live/api/${code}/guess`, { token: ana.token, ord: 0, lat: 1, lng: 5 });
+    await post(`${base}/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 0, lng: 7 });
+    await post(`${base}/live/api/${code}/guess`, { token: ana.token, ord: 0, lat: 1, lng: 5 });
     const snap = await (await next(base, code)).json(); // revealed
     assert.deepEqual(snap.reveal.truth.geometry, LINE);
     assert.deepEqual(snap.reveal.guesses.map((x) => [x.name, x.km, x.points, x.nearest]),
@@ -243,18 +243,18 @@ test('shape round: live guesses score by nearest point; reveal carries geometry 
 
 test('events: `you` stays per-connection when a broadcast shares one base snapshot', async () => {
   await withServer(async ({ base, game }) => {
-    const { code } = await (await post(`${base}/game/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
-    const fer = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Fer' })).json();
-    const ana = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Ana' })).json();
+    const { code } = await (await post(`${base}/api/admin/games/${game.id}/sessions`, undefined, auth)).json();
+    const fer = await (await post(`${base}/live/api/${code}/join`, { name: 'Fer' })).json();
+    const ana = await (await post(`${base}/live/api/${code}/join`, { name: 'Ana' })).json();
     const open = async (p) => {
       const ac = new AbortController();
-      const resp = await fetch(`${base}/game/live/api/${code}/events?token=${p.token}`, { signal: ac.signal });
+      const resp = await fetch(`${base}/live/api/${code}/events?token=${p.token}`, { signal: ac.signal });
       const reader = resp.body.getReader(); const buf = { text: '' };
       await readEvent(reader, buf); // initial snapshot
       return { ac, reader, buf };
     };
     const [a, b] = [await open(fer), await open(ana)];
-    await post(`${base}/game/live/api/${code}/join`, { name: 'Bo' }); // triggers a broadcast
+    await post(`${base}/live/api/${code}/join`, { name: 'Bo' }); // triggers a broadcast
     const [ea, eb] = [await readEvent(a.reader, a.buf), await readEvent(b.reader, b.buf)];
     assert.deepEqual(ea.data.you, { playerId: fer.playerId, name: 'Fer' });
     assert.deepEqual(eb.data.you, { playerId: ana.playerId, name: 'Ana' });
@@ -267,10 +267,10 @@ test('point round on the live reveal: truth.geometry is null and nearest is the 
   await withServer(async ({ base, db }) => {
     const g = db.createGame('Points');
     db.saveGame(g.id, 'Points', [{ question: 'Where?', lat: 12.5, lng: 34.5, radius: 10 }]);
-    const { code } = await (await post(`${base}/game/api/admin/games/${g.id}/sessions`, undefined, auth)).json();
-    const fer = await (await post(`${base}/game/live/api/${code}/join`, { name: 'Fer' })).json();
+    const { code } = await (await post(`${base}/api/admin/games/${g.id}/sessions`, undefined, auth)).json();
+    const fer = await (await post(`${base}/live/api/${code}/join`, { name: 'Fer' })).json();
     await next(base, code); // open
-    await post(`${base}/game/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 0, lng: 0 });
+    await post(`${base}/live/api/${code}/guess`, { token: fer.token, ord: 0, lat: 0, lng: 0 });
     const snap = await (await next(base, code)).json(); // revealed
     assert.equal(snap.reveal.truth.geometry, null);
     assert.deepEqual(snap.reveal.guesses[0].nearest, { lat: 12.5, lng: 34.5 });

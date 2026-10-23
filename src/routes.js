@@ -1,4 +1,4 @@
-// The game's whole HTTP surface, mounted at /game from src/web.js with one
+// The game's whole HTTP surface, mounted at / from src/index.js with one
 // line. Depends on the host only for basicAuth (and /api/upload for photos).
 const path = require('node:path');
 const express = require('express');
@@ -7,7 +7,7 @@ const { points, distanceToRound } = require('./scoring');
 const { normalizeGeometry, bboxCenter } = require('./geo');
 const liveRoutes = require('./live');
 
-const VIEWS = path.join(__dirname, '..', '..', 'views', 'game');
+const VIEWS = path.join(__dirname, '..', 'views');
 // Same pattern the host's upload endpoint generates; duplicated on purpose
 // (no imports from host code — the module must stay liftable).
 const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/;

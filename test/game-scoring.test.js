@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { haversineKm, points } = require('../src/game/scoring');
+const { haversineKm, points } = require('../src/scoring');
 
 test('haversineKm: Porto→Lisbon ≈ 274 km, zero for same point', () => {
   const km = haversineKm(41.15, -8.61, 38.7078, -9.1366);
@@ -17,7 +17,7 @@ test('points: full inside radius, exp decay after, radius tunes the zone', () =>
   assert.ok(points(200) > points(300), 'monotonic decay');
 });
 
-const { distanceToRound } = require('../src/game/scoring');
+const { distanceToRound } = require('../src/scoring');
 
 test('distanceToRound: point round → haversine to the point; shape round → nearest on the shape', () => {
   const pt = distanceToRound(1, 0, { lat: 0, lng: 0, geometry: null });

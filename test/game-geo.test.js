@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { haversineKm, nearestOnGeometry, bboxCenter, normalizeGeometry, MAX_VERTICES } = require('../src/game/geo');
+const { haversineKm, nearestOnGeometry, bboxCenter, normalizeGeometry, MAX_VERTICES } = require('../src/geo');
 
 const near = (a, b, tol = 0.05) => assert.ok(Math.abs(a - b) <= tol, `${a} vs ${b}`);
 // GeoJSON positions are [lng, lat].

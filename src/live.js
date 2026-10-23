@@ -6,7 +6,7 @@ const express = require('express');
 const { revealedOrds } = require('./db');
 const { points, distanceToRound } = require('./scoring');
 
-const VIEWS = path.join(__dirname, '..', '..', 'views', 'game');
+const VIEWS = path.join(__dirname, '..', 'views');
 const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/; // duplicated on purpose (module stays liftable)
 
 const validCoords = (lat, lng) =>

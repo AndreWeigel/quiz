@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { openGameDb, revealedOrds } = require('../src/game/db');
+const { openGameDb, revealedOrds } = require('../src/db');
 
 const round = (q, lat, lng, extra = {}) => ({ question: q, lat, lng, ...extra });
 
