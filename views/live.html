@@ -131,11 +131,11 @@ import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist
 const $ = (id) => document.getElementById(id);
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const code = location.pathname.split('/').filter(Boolean).pop();
-const HOST = location.pathname.startsWith('/game/host/');
+const HOST = location.pathname.startsWith('/host/');
 const KEY = `maptap:live:${code}`;
 let token = null;
 try { token = localStorage.getItem(KEY); } catch {}
-const api = (p, opts) => fetch(`/game/live/api/${code}${p}`, opts);
+const api = (p, opts) => fetch(`/live/api/${code}${p}`, opts);
 const postJson = (p, body) => api(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
 const map = new maplibregl.Map({
@@ -193,7 +193,7 @@ function setBanner(question, hint, rno) {
 }
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const isMe = (playerId) => !!(snap.you && snap.you.playerId === playerId);
-const photoUrl = (file) => `/game/live/api/${code}/photo/${file}`;
+const photoUrl = (file) => `/live/api/${code}/photo/${file}`;
 
 function clearGlobe() {
   if (marker) { marker.remove(); marker = null; }
@@ -296,7 +296,7 @@ function renderFinished() {
 function renderHost() {
   if (!HOST) return;
   $('host').hidden = false;
-  $('joinlink').value = `${location.origin}/game/live/${code}`;
+  $('joinlink').value = `${location.origin}/live/${code}`;
   const done = snap.players.filter((p) => p.answered).length;
   $('count').textContent = snap.state === 'open' ? `${done} of ${snap.players.length} answered`
     : `${snap.players.length} player${snap.players.length === 1 ? '' : 's'}`;
@@ -349,12 +349,12 @@ $('action').addEventListener('click', confirmGuess);
 // ---- host controls ----
 $('next').addEventListener('click', async () => {
   $('next').disabled = true;
-  try { await fetch(`/game/api/admin/sessions/${code}/next`, { method: 'POST' }); }
+  try { await fetch(`/api/admin/sessions/${code}/next`, { method: 'POST' }); }
   finally { $('next').disabled = false; }
 });
 $('end').addEventListener('click', async () => {
   if (!confirm('End this session for everyone? The scoreboard shows what has been revealed so far.')) return;
-  await fetch(`/game/api/admin/sessions/${code}/end`, { method: 'POST' });
+  await fetch(`/api/admin/sessions/${code}/end`, { method: 'POST' });
 });
 $('copy').addEventListener('click', () => {
   const url = $('joinlink').value;
@@ -364,7 +364,7 @@ $('copy').addEventListener('click', () => {
 
 // ---- joining + the stream ----
 function connect() {
-  const es = new EventSource(`/game/live/api/${code}/events?token=${encodeURIComponent(token || '')}`);
+  const es = new EventSource(`/live/api/${code}/events?token=${encodeURIComponent(token || '')}`);
   es.addEventListener('state', (e) => { snap = JSON.parse(e.data); render(); });
   es.onerror = () => { $('hint').textContent = 'reconnecting…'; };
 }

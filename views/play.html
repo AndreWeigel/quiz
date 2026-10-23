@@ -93,7 +93,7 @@ import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist
 const $ = (id) => document.getElementById(id);
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const slug = location.pathname.split('/').filter(Boolean).pop();
-const api = (p, opts) => fetch(`/game/api/${slug}${p}`, opts);
+const api = (p, opts) => fetch(`/api/${slug}${p}`, opts);
 
 const map = new maplibregl.Map({
   container: 'map',

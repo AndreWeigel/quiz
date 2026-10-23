@@ -133,10 +133,10 @@ module.exports = function gameRoutes({ basicAuth, dbPath = 'data/game.db', uploa
     res.json({ leaderboard: db.listPlays(g.game.id) });
   });
 
-  // Live sessions (src/game/live.js) — before the /:slug catch-all so /live/… and /host/… resolve.
+  // Live sessions (src/live.js) — before the /:slug catch-all so /live/… and /host/… resolve.
   router.use(liveRoutes({ basicAuth, db, uploadsDir }));
 
-  // The share link: the play page itself (fetches its data from /game/api/:slug).
+  // The share link: the play page itself (fetches its data from /api/:slug).
   router.get('/:slug', (req, res) => {
     if (!db.getGameBySlug(req.params.slug)) return res.status(404).send('No such game.');
     res.sendFile(path.join(VIEWS, 'play.html'));
