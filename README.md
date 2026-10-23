@@ -48,7 +48,7 @@ API — self-paced: `GET /api/<slug>` (rounds without answers), `POST /api/<slug
 (Server-Sent Events), `GET …/photo/<file>` (only once that round is revealed).
 Admin: `GET/POST /api/admin/games`, `GET/PUT/DELETE /api/admin/games/:id`,
 `GET/POST /api/admin/games/:id/sessions`, `POST /api/admin/sessions/:code/next|end`,
-`POST /api/upload` (raw `image/*`, ≤ 8 MB).
+`POST /api/upload` (raw `image/*` — jpeg, png, webp or gif — ≤ 8 MB).
 
 ## Rounds
 
@@ -66,6 +66,11 @@ area. `points = km <= radius ? 100 : round(100 · e^(−(km − radius)/500))`.
 
 `scripts/import-photos.js <src-uploads-dir> [db=data/game.db] [dest=data/uploads]` copies the photos that rounds reference from
 another uploads folder (used once for the move from the scoreboard).
+On the server it runs like this:
+
+```sh
+docker compose run --rm -v /root/maptap-scoreboard/data/uploads:/src:ro quiz node scripts/import-photos.js /src
+```
 
 ## Running in production (Docker)
 

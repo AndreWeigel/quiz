@@ -1,13 +1,12 @@
 // Live sessions: the host-driven, everyone-at-once way to play a custom game.
-// Mounted inside the game router (before its /:slug catch-all). Depends on the
-// host only for basicAuth and the uploads folder.
+// Mounted inside the quiz router (before its /:slug catch-all).
 const path = require('node:path');
 const express = require('express');
 const { revealedOrds } = require('./db');
 const { points, distanceToRound } = require('./scoring');
 
 const VIEWS = path.join(__dirname, '..', 'views');
-const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/; // duplicated on purpose (module stays liftable)
+const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/; // same pattern the upload endpoint in src/index.js generates
 
 const validCoords = (lat, lng) =>
   Number.isFinite(lat) && Math.abs(lat) <= 90 && Number.isFinite(lng) && Math.abs(lng) <= 180;
@@ -161,8 +160,8 @@ module.exports = function liveRoutes({ basicAuth, db, uploadsDir }) {
     req.on('close', () => { clearInterval(ping); streams.get(s.code)?.delete(client); });
   });
 
-  // Round photos live behind the friends password at /uploads; a live session
-  // may show a photo once its round is revealed, and only that photo.
+  // `/uploads` is public here, but a live page only learns a photo's name
+  // through this route, and only once its round is revealed.
   router.get('/live/api/:code/photo/:file', (req, res) => {
     const s = db.getSession(req.params.code);
     const file = req.params.file;

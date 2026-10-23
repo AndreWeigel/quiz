@@ -49,3 +49,16 @@ test('unknown slugs still 404 at the root', async () => {
     assert.equal(await r.text(), 'No such game.');
   });
 });
+
+test('a gate whose secret is unset answers 503 Locked', async () => {
+  const { passwordGate } = require('../src/auth');
+  const express = require('express');
+  const app = express();
+  app.get('/x', passwordGate('t', 'NOT_SET_ANYWHERE'), (_req, res) => res.send('ok'));
+  const server = app.listen(0);
+  try {
+    const r = await fetch(`http://127.0.0.1:${server.address().port}/x`);
+    assert.equal(r.status, 503);
+    assert.match(await r.text(), /Locked/);
+  } finally { server.close(); }
+});

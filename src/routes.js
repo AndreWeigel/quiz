@@ -1,5 +1,5 @@
-// The game's whole HTTP surface, mounted at / from src/index.js with one
-// line. Depends on the host only for basicAuth (and /api/upload for photos).
+// The quiz's HTTP surface, mounted at / from src/index.js. basicAuth and the
+// uploads folder are injected so tests can swap them.
 const path = require('node:path');
 const express = require('express');
 const { openGameDb } = require('./db');
@@ -8,8 +8,7 @@ const { normalizeGeometry, bboxCenter } = require('./geo');
 const liveRoutes = require('./live');
 
 const VIEWS = path.join(__dirname, '..', 'views');
-// Same pattern the host's upload endpoint generates; duplicated on purpose
-// (no imports from host code — the module must stay liftable).
+// Same pattern the upload endpoint in src/index.js generates.
 const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/;
 
 const optStr = (v) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);

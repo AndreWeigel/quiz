@@ -1,5 +1,4 @@
-// Game storage — its OWN SQLite file (data/game.db), never scores.db, so the
-// whole game module can be lifted out of this repo later (handover directive).
+// The quiz's SQLite file (data/game.db): games, rounds, plays, guesses, live sessions.
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');

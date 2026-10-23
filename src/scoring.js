@@ -1,5 +1,5 @@
-// Distance scoring for custom games (spec-pinned formula). Kept dependency-free
-// so the whole game module stays liftable. Geometry lives in ./geo.
+// Distance scoring for custom games (spec-pinned formula). Dependency-free on
+// purpose. Geometry lives in ./geo.
 const { haversineKm, nearestOnGeometry } = require('./geo');
 
 // Full points within the round's tolerance radius, smooth decay beyond it.

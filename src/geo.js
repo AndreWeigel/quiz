@@ -1,6 +1,6 @@
 // Geometry for shape rounds: nearest point on a GeoJSON shape, point-in-polygon,
-// bbox centre, and GeoJSON normalisation. Dependency-free on purpose (the game
-// module stays liftable). GeoJSON positions are [lng, lat]; our API uses (lat, lng).
+// bbox centre, and GeoJSON normalisation. Dependency-free on purpose.
+// GeoJSON positions are [lng, lat]; our API uses (lat, lng).
 const R = 6371, rad = Math.PI / 180, deg = 180 / Math.PI;
 const MAX_VERTICES = 5000;
 const MAX_BYTES = 1000000;
