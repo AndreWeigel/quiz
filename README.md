@@ -64,7 +64,7 @@ area. `points = km <= radius ? 100 : round(100 · e^(−(km − radius)/500))`.
 `data/game.db` (games, rounds, plays, guesses, sessions) and `data/uploads/`
 (photos). Both live in the compose volume. **Back them up.**
 
-`scripts/import-photos.js <dir>` copies the photos that rounds reference from
+`scripts/import-photos.js <src-uploads-dir> [db=data/game.db] [dest=data/uploads]` copies the photos that rounds reference from
 another uploads folder (used once for the move from the scoreboard).
 
 ## Running in production (Docker)

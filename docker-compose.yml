@@ -9,7 +9,7 @@ services:
     restart: always
     init: true              # node must not be PID 1 or SIGTERM is ignored and every stop gets SIGKILLed
     environment:
-      ADMIN_TOKEN: ${ADMIN_TOKEN:-}   # password for /admin, /host, uploads. Empty = locked.
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}   # password for /admin, /host, /api/admin and the upload endpoint; photos themselves are public. Empty = locked.
       TZ: ${TZ:-Europe/Berlin}
     volumes:
       - ./data:/app/data    # game.db + uploads. Back it up.

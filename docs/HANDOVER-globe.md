@@ -28,7 +28,7 @@ mercator map than on a sphere — and lazy-loaded, so only game builders pay the
 
 ## The shared recipe
 
-Copy this if you ever add a fourth globe. Both globe pages use it verbatim.
+Copy this if you ever add a fourth globe. Both globe pages (play and live) use it verbatim.
 
 ```js
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
@@ -75,38 +75,6 @@ only draw what `/guess` or the live snapshot hands them (`truth.geometry`,
 - Rate-limited and keyless — every call is wrapped in `try {} catch {}` and
   failure just leaves the ⚠ marker. Never make it a hard dependency.
 
-## `/globe` — the people album
-
-Data: `GET /api/globe` ([web.js:238](src/web.js#L238)), behind the same friends password →
-`{ layers: [{ id, label, points: [{ label, city, country, lat, lng, story, photos }] }] }`.
-The `layers` array is deliberately extensible (game locations could become a
-second layer one day) — **don't break the shape**. Points come from
-`data/users.json` via `src/users.js`, filtered to `active` users with a finite
-`lat`.
-
-The interesting parts, all in [globe.html](views/globe.html):
-
-- **Two rendering systems on purpose.** The exact birthplace is a MapLibre
-  `circle` layer (`dots`) — a real map layer, so the horizon occludes it for
-  free. The name card is a DOM `Marker` — which is **not** occluded, hence the
-  manual limb check.
-- **`LIMB = 78`** ([globe.html:145](views/globe.html#L145)): a card whose point
-  is more than 78° from the view centre is on the far side of the sphere and
-  gets hidden. Skipped entirely above zoom 5.5, where the horizon can't hide
-  anyone.
-- **`MINI = 4`**: below zoom 4 cards shrink to name-only chips.
-- **Declutter** ([`layout()`, globe.html:158](views/globe.html#L158)): every
-  card starts above its dot, then up to 30 iterations of screen-space
-  push-apart on whichever axis overlaps least. The final position is applied
-  with `marker.setOffset()` and an SVG leader line is drawn back to the true
-  dot. Runs on every `move` and `resize` — keep it cheap.
-- **Same-coordinate merge**: players sharing a lat/lng become one card
-  ("Ana & Ben") with both stories in the panel.
-- **Auto-spin** until the first `mousedown`/`touchstart`/`wheel`; off under
-  `prefers-reduced-motion`; stops itself above zoom 4.
-- **Story panel** is built with `createElement`/`textContent` only — the text
-  is user-entered. Never `innerHTML` there.
-
 ## `/:slug` — the play page
 
 [play.html](views/play.html). Slug is read from the URL path; every call
@@ -132,30 +100,29 @@ goes to `/api/:slug…`.
 ## Server side
 
 Everything the game needs lives in `src/` + `views/` and is mounted
-with **one line** ([web.js:107](src/web.js#L107)):
+with **one line** ([index.js](src/index.js)):
 
 ```js
 app.use('/', gameRoutes({ basicAuth, dbPath, uploadsDir }));
 ```
 
-- **Own SQLite file**, `data/game.db` ([db.js](src/db.js)) — never
-  `scores.db`. Schema: `games / rounds / plays / guesses`, WAL, foreign keys
+- **Own SQLite file**, `data/game.db` ([db.js](src/db.js)).
+  Schema: `games / rounds / plays / guesses`, WAL, foreign keys
   on, with in-place `ALTER TABLE` migrations for the `answer` and `radius`
   columns added on 2026-09-01.
 - **Slug = 16 random hex chars, and it *is* the access control** for playing:
-  anyone with the link can play. Round photos come from `/uploads`, which sits
-  behind the friends password (see Photos below), so a shared link needs that
-  password too for the pictures.
-- **Scoring** ([scoring.js:13](src/scoring.js#L13)):
+  anyone with the link can play. Round photos come from `/uploads`, which is
+  public (see Photos below); their names are unguessable and only shown on a
+  reveal.
+- **Scoring** ([scoring.js:6](src/scoring.js#L6)):
   `points(km, radius = 25)` → 100 inside the round's tolerance radius, then
   `round(100 * exp(-(km - radius) / 500))`. Haversine on a 6371 km sphere.
   Tested in `test/game-scoring.test.js`.
 - **Photos**: `POST /api/upload` (Basic Auth, raw `image/*`, 8 MB cap) writes a
   random 16-hex filename; `/uploads` is static with `maxAge: 365d, immutable`,
-  behind `friendsAuth` (`FRIENDS_TOKEN` or the admin password; unset = admin-only).
-  The `PHOTO_FILE` regex is duplicated in `src/routes.js` and
-  `src/users.js` **on purpose** — the game module imports nothing from the host
-  so it can be lifted out later.
+  served publicly (`src/index.js`); only the upload endpoint needs `ADMIN_TOKEN`.
+  The `PHOTO_FILE` regex lives in `src/routes.js` and `src/live.js`
+  (and the upload handler in `src/index.js` produces matching names).
 - Replay block is a `UNIQUE(game_id, player_name COLLATE NOCASE)` constraint,
   caught as `SQLITE_CONSTRAINT` → 409.
 
@@ -189,12 +156,8 @@ real guess. Honor system, by design.
 
 ## State of play
 
-Slices 1–3 are shipped: people stories on `/globe`, the game builder, the play
-page + scoring + leaderboard, plus two UI/accessibility polish passes
-(`8d28518`, `f4f9a6d`). Specs and plans are in `docs/superpowers/`.
+Shipped: the game builder, the play page + scoring + leaderboard, live
+sessions, shapes, plus two UI/accessibility polish passes. Specs and plans are
+in `docs/superpowers/`.
 
-Deploy: pushing to `main` runs `.github/workflows/deploy.yml`, which SSHes in and
-runs `cd /root/maptap-scoreboard && git pull --ff-only && docker compose up -d --build`.
-Keep that checkout clean: a hand edit to a tracked file aborts the pull, which
-blocked every deploy from 7 to 15 Sep. Manual fallback is the same command over
-`ssh root@46.224.233.5`, then `curl localhost:3000/healthz`.
+Deploy: see "Running in production (Docker)" in the README.
