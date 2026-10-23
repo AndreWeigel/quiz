@@ -1,0 +1,17 @@
+# quiz — geography quiz on a globe (quiz.andreweigel.me)
+# Deployed on the personal-cloud server; nginx proxies quiz.andreweigel.me → 127.0.0.1:3001.
+services:
+  quiz:
+    build: .
+    container_name: quiz
+    labels:
+      - 'wud.watch=false'   # built here, not pulled: nothing for What's Up Docker to watch
+    restart: always
+    init: true              # node must not be PID 1 or SIGTERM is ignored and every stop gets SIGKILLed
+    environment:
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}   # password for /admin, /host, uploads. Empty = locked.
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - ./data:/app/data    # game.db + uploads. Back it up.
+    ports:
+      - "127.0.0.1:3001:3000"
