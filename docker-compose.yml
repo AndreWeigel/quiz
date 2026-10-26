@@ -1,5 +1,5 @@
 # quiz — geography quiz on a globe (quiz.andreweigel.me)
-# Deployed on the personal-cloud server; nginx proxies quiz.andreweigel.me → 127.0.0.1:3001.
+# Deployed on the personal-cloud server; nginx proxies quiz.andreweigel.me → 127.0.0.1:3002.
 services:
   quiz:
     build: .
@@ -14,4 +14,4 @@ services:
     volumes:
       - ./data:/app/data    # game.db + uploads. Back it up.
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:3002:3000"

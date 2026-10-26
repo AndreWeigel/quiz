@@ -75,14 +75,14 @@ docker compose run --rm -v /root/maptap-scoreboard/data/uploads:/src:ro quiz nod
 ## Running in production (Docker)
 
 Runs on the personal-cloud server; nginx proxies `quiz.andreweigel.me` →
-`127.0.0.1:3001` (config in the `personal-cloud` repo, `nginx/quiz.conf`).
+`127.0.0.1:3002` (config in the `personal-cloud` repo, `nginx/quiz.conf`).
 
 ```sh
 git clone https://github.com/AndreWeigel/quiz.git ~/quiz
 cd ~/quiz
 cp .env.example .env          # set ADMIN_TOKEN
 docker compose up -d --build
-curl localhost:3001/healthz
+curl localhost:3002/healthz
 ```
 
 Update: `git pull --ff-only && docker compose up -d --build`. The GitHub
