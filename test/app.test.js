@@ -24,6 +24,14 @@ test('healthz answers before the /:slug catch-all', async () => {
   });
 });
 
+test('the bare domain redirects to the builder', async () => {
+  await withApp(async (base) => {
+    const r = await fetch(`${base}/`, { redirect: 'manual' });
+    assert.equal(r.status, 302);
+    assert.equal(r.headers.get('location'), '/admin');
+  });
+});
+
 test('admin pages and upload need the password; photos do not', async () => {
   await withApp(async (base, dir) => {
     assert.equal((await fetch(`${base}/admin`)).status, 401);

@@ -16,6 +16,8 @@ function createApp({ dbPath = config.DB_PATH, uploadsDir = config.UPLOADS_DIR } 
 
   // Before the game router: its /:slug catch-all would answer this with a 404.
   app.get('/healthz', (_req, res) => res.json({ ok: true }));
+  // No landing page: the bare domain is only ever typed by the game builder.
+  app.get('/', (_req, res) => res.redirect('/admin'));
 
   // Photos are public. Names are 16 random hex chars that only ever appear on a
   // reveal, so a photo is as discoverable as the game link itself — no more.
