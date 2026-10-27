@@ -106,7 +106,7 @@ test('public game info leaks no secrets', async () => {
     const g = await makeGame(base, [R1, R2]);
     const info = await (await fetch(`${base}/api/${g.slug}`)).json();
     assert.equal(info.title, 'Trip');
-    assert.deepEqual(info.rounds, [{ ord: 0, question: 'Born?' }, { ord: 1, question: 'Station?' }]);
+    assert.deepEqual(info.rounds, [{ ord: 0, question: 'Born?', type: 'location' }, { ord: 1, question: 'Station?', type: 'location' }]);
     assert.equal((await fetch(`${base}/api/nope`)).status, 404);
   });
 });
@@ -209,7 +209,7 @@ test('PUT stores a shape (Feature unwrapped), sets lat/lng to the bbox centre, c
     assert.equal(rounds[1].geometry, null);
     assert.deepEqual([rounds[1].lat, rounds[1].lng], [6, 5]); // from the Point [lng 5, lat 6]
     const pub = await (await fetch(`${base}/api/${g.slug}`)).json();
-    assert.deepEqual(Object.keys(pub.rounds[0]).sort(), ['ord', 'question']); // the shape is the answer
+    assert.deepEqual(Object.keys(pub.rounds[0]).sort(), ['ord', 'question', 'type']); // the shape is the answer
   });
 });
 

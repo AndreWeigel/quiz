@@ -54,6 +54,24 @@
   .ov tr.me td { color: var(--gold); font-weight: 700; }
   .ov .total { font: 2rem var(--mono); color: var(--gold); margin: 4px 0 14px; }
 
+  /* Typed / choice / number rounds: the answer card sits above the action button. */
+  #answer { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 5;
+    width: min(460px, calc(100vw - 24px)); background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 8px; }
+  #answer[hidden] { display: none; }
+  #answer .numwrap { display: flex; align-items: center; gap: 10px; }
+  #answer input { flex: 1; min-width: 0; background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font: 1.05rem var(--body); padding: 12px; text-align: center; }
+  #answer input:focus { outline: none; border-color: rgba(34,211,238,.5); }
+  #answer .unit { font: .95rem var(--mono); color: var(--muted); }
+  #answer .opt { text-align: left; font: 600 .98rem var(--body); padding: 12px 14px; border-radius: 12px; cursor: pointer;
+    border: 1px solid var(--border); background: rgba(10,14,34,.72); color: var(--text); }
+  #answer .opt:hover { border-color: rgba(34,211,238,.4); }
+  #answer .opt.sel { border-color: var(--cyan); background: rgba(34,211,238,.15); color: var(--cyan); }
+  #reveal .verdict { font: 700 1rem var(--body); margin-bottom: 4px; }
+  #reveal .o { font-size: .9rem; padding: 3px 0; color: var(--muted); }
+  #reveal .o.right { color: var(--gold); font-weight: 700; }
+  #reveal .o.mine:not(.right) { color: var(--text); text-decoration: line-through; }
   #reveal { position: fixed; top: 86px; right: 14px; z-index: 4; width: min(320px, calc(100vw - 28px));
     max-height: calc(100vh - 170px); overflow-y: auto; background: var(--panel);
     border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px;
@@ -74,10 +92,11 @@
   <div class="hint" id="hint"></div>
 </div>
 <button id="action" hidden></button>
+<div id="answer" hidden></div>
 <div id="reveal" hidden></div>
 <div class="ov" id="nameov" hidden><div class="card">
   <h1 id="wtitle">MapTap</h1>
-  <p>Tap the globe where you think the answer is. Closer tap, more points. Type your name — it goes on the leaderboard.</p>
+  <p>Tap the globe, type, or pick your answer each round. Closer means more points. Type your name — it goes on the leaderboard.</p>
   <input id="pname" maxlength="40" placeholder="Your name" aria-label="Your name" autocomplete="off">
   <button id="start">Play</button>
 </div></div>
@@ -116,6 +135,7 @@ let playerName = '';
 try { playerName = localStorage.getItem('maptap:player') || ''; } catch {}
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
+let ready = false; // map.loaded() is false whenever tiles are in flight and 'load' fires once, so track readiness ourselves
 // The reveal geometry as a feature: the round's shape, or a point at the anchor.
 const truthFeature = (t) => ({ type: 'Feature', geometry: t.geometry || { type: 'Point', coordinates: [t.lng, t.lat] } });
 // Extend bounds by every position of a geometry.
@@ -136,6 +156,7 @@ map.on('load', () => {
     paint: { 'line-color': '#ffd15c', 'line-width': 3 } });
   map.addLayer({ id: 'truth', type: 'circle', source: 'truth', filter: ['==', ['geometry-type'], 'Point'],
     paint: { 'circle-radius': 6, 'circle-color': '#ffd15c', 'circle-stroke-color': '#070b1c', 'circle-stroke-width': 2 } });
+  ready = true;
 });
 
 function setBanner(question, hint) {
@@ -144,18 +165,66 @@ function setBanner(question, hint) {
   $('hint').textContent = hint || '';
 }
 
+const round = () => game.rounds[ord];
+const isLoc = () => round().type === 'location';
+const HINTS = { location: 'tap the globe to drop your pin', text: 'type your answer', choice: 'pick one', number: 'your best estimate' };
+const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+// "57,5" → 57.5, "9,289" / "9 289" → 9289; null if it isn't a number.
+const parseNum = (raw) => {
+  let v = raw.replace(/[\s'_]/g, '');
+  v = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(v) ? v.replace(/,/g, '') : v.replace(',', '.');
+  return v && Number.isFinite(Number(v)) ? Number(v) : null;
+};
+const fmtNum = (n) => n.toLocaleString('en', { maximumFractionDigits: 3 });
+let pick = null; // the current typed / chosen / estimated answer on non-location rounds
+
+function readyAction() {
+  $('action').textContent = 'Submit answer';
+  $('action').hidden = pick == null;
+}
+// Untrusted text (options, units) via textContent only.
+function answerCard() {
+  const r = round(), box = $('answer');
+  box.replaceChildren();
+  pick = null;
+  if (r.type === 'choice') {
+    r.options.forEach((o, i) => {
+      const b = mk('button', 'opt', o);
+      b.type = 'button';
+      b.onclick = () => { pick = i; for (const x of box.children) x.classList.toggle('sel', x === b); readyAction(); };
+      box.appendChild(b);
+    });
+  } else {
+    const wrap = mk('div', 'numwrap'), inp = mk('input');
+    inp.autocomplete = 'off';
+    inp.placeholder = r.type === 'number' ? 'Your estimate' : 'Type your answer';
+    if (r.type === 'number') inp.inputMode = 'decimal'; else inp.maxLength = 100;
+    inp.setAttribute('aria-label', inp.placeholder);
+    inp.oninput = () => { pick = r.type === 'number' ? parseNum(inp.value) : (inp.value.trim() || null); readyAction(); };
+    inp.onkeydown = (e) => { if (e.key === 'Enter') confirmGuess(); };
+    wrap.appendChild(inp);
+    if (r.unit) wrap.appendChild(mk('span', 'unit', r.unit));
+    box.appendChild(wrap);
+    setTimeout(() => inp.focus(), 0);
+  }
+  box.hidden = false;
+}
+
 function startRound() {
   phase = 'guess';
   if (marker) { marker.remove(); marker = null; }
   const setEmpty = () => { map.getSource('truth').setData(EMPTY); map.getSource('line').setData(EMPTY); };
-  if (map.loaded()) setEmpty(); else map.once('load', setEmpty);
+  if (ready) setEmpty(); else map.once('load', setEmpty);
+  if (ord > 0) map.easeTo({ center: [10, 25], zoom: 1.6, duration: RM ? 0 : 1200 }); // last reveal's zoom would be a hint
   $('reveal').hidden = true;
   $('action').hidden = true;
-  setBanner(game.rounds[ord].question, 'tap the globe to drop your pin');
+  $('answer').hidden = true;
+  if (!isLoc()) answerCard();
+  setBanner(round().question, HINTS[round().type]);
 }
 
 function place(lat, lng) {
-  if (phase !== 'guess') return;
+  if (phase !== 'guess' || !isLoc()) return;
   if (!marker) marker = new maplibregl.Marker({ draggable: true, color: '#22d3ee' }).setLngLat([lng, lat]).addTo(map);
   else marker.setLngLat([lng, lat]);
   $('action').textContent = 'Confirm guess';
@@ -165,18 +234,30 @@ function place(lat, lng) {
 map.on('click', (e) => place(e.lngLat.lat, e.lngLat.wrap().lng));
 
 // Reveal card is untrusted server/user text — createElement/textContent only.
-function showReveal(r) {
-  const box = $('reveal');
+function showReveal(r, g) {
+  const box = $('reveal'), t = r.truth, rd = round();
   box.replaceChildren();
-  const add = (tag, cls, text) => {
-    const el = document.createElement(tag);
-    el.className = cls; el.textContent = text;
-    box.appendChild(el); return el;
-  };
+  const add = (tag, cls, text) => box.appendChild(mk(tag, cls, text));
   add('div', 'pts', `+${r.points} pts`);
-  add('div', 'km', `${r.km} km away`);
-  const label = r.truth.answer || [r.truth.city, r.truth.country].filter(Boolean).join(' · ');
-  if (label) add('div', 'ans', `📍 ${label}`);
+  let label = t.answer;
+  if (rd.type === 'location') {
+    add('div', 'km', `${r.km} km away`);
+    label = t.answer || [t.city, t.country].filter(Boolean).join(' · ');
+    if (label) add('div', 'ans', `📍 ${label}`);
+  } else if (rd.type === 'choice') {
+    add('div', 'verdict', r.correct ? '✓ Right' : '✗ Not quite');
+    rd.options.forEach((o, i) => add('div', `o${i === t.correct ? ' right' : ''}${i === g.answer ? ' mine' : ''}`,
+      `${i === t.correct ? '✓' : i === g.answer ? '✗' : '·'} ${o}`));
+    if (t.answer !== rd.options[t.correct]) add('div', 'ans', t.answer);
+  } else if (rd.type === 'number') {
+    const u = t.unit ? ` ${t.unit}` : '';
+    add('div', 'km', `you said ${fmtNum(g.answer)}${u} · off by ${fmtNum(Math.abs(g.answer - t.value))}${u}`);
+    add('div', 'ans', `✔ ${t.answer}`);
+  } else {
+    add('div', 'verdict', r.correct ? '✓ Right' : '✗ Not quite');
+    add('div', 'km', `you said “${g.answer}”`);
+    add('div', 'ans', `✔ ${t.answer}`);
+  }
   if (r.truth.photo) {
     const img = document.createElement('img');
     img.src = `/uploads/${r.truth.photo}`; img.alt = label || 'photo'; img.loading = 'lazy';
@@ -187,26 +268,33 @@ function showReveal(r) {
 }
 
 async function confirmGuess() {
-  if (phase !== 'guess' || !marker) return;
+  if (phase !== 'guess' || (isLoc() ? !marker : pick == null)) return;
   phase = 'reveal';
   $('action').hidden = true;
-  const { lat, lng } = marker.getLngLat().wrap();
+  const g = isLoc() ? (({ lat, lng }) => ({ lat, lng }))(marker.getLngLat().wrap()) : { answer: pick };
   let r;
   try {
     const resp = await api('/guess', { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ord: game.rounds[ord].ord, lat, lng }) });
+      body: JSON.stringify({ ord: round().ord, ...g }) });
     if (!resp.ok) throw new Error(resp.status);
     r = await resp.json();
-  } catch { phase = 'guess'; $('action').hidden = false; $('hint').textContent = 'network hiccup — try confirm again'; return; }
-  guesses.push({ ord: game.rounds[ord].ord, lat, lng });
+  } catch { phase = 'guess'; $('action').hidden = false; $('hint').textContent = 'network hiccup — try again'; return; }
+  guesses.push({ ord: round().ord, ...g });
+  $('answer').hidden = true;
+  if (!isLoc()) { showReveal(r, g); return afterReveal(); }
+  const { lat, lng } = g;
   const tf = truthFeature(r.truth);
   map.getSource('truth').setData(tf);
   map.getSource('line').setData({ type: 'Feature', geometry: {
     type: 'LineString', coordinates: [[lng, lat], [r.nearest.lng, r.nearest.lat]] } });
   const bounds = extendBy(new maplibregl.LngLatBounds([lng, lat], [lng, lat]), tf.geometry);
   map.fitBounds(bounds, { padding: 90, maxZoom: 9, duration: RM ? 0 : 1200 });
-  showReveal(r);
-  setBanner(game.rounds[ord].question, '');
+  showReveal(r, g);
+  afterReveal();
+}
+
+function afterReveal() {
+  setBanner(round().question, '');
   const last = ord === game.rounds.length - 1;
   $('action').textContent = last ? 'See results' : 'Next round';
   $('action').hidden = false;
@@ -261,7 +349,8 @@ $('start').addEventListener('click', () => {
 });
 $('pname').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('start').click(); });
 
-window.playState = { place, confirm: confirmGuess, next: nextRound }; // debug/driver handle
+window.playState = { place, confirm: confirmGuess, next: nextRound, // debug/driver handle
+  answer: (v) => { pick = v; readyAction(); } };
 
 (async () => {
   try {

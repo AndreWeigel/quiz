@@ -3,13 +3,10 @@
 const path = require('node:path');
 const express = require('express');
 const { revealedOrds } = require('./db');
-const { points, distanceToRound } = require('./scoring');
+const { typeOf, publicRound } = require('./types');
 
 const VIEWS = path.join(__dirname, '..', 'views');
 const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/; // same pattern the upload endpoint in src/index.js generates
-
-const validCoords = (lat, lng) =>
-  Number.isFinite(lat) && Math.abs(lat) <= 90 && Number.isFinite(lng) && Math.abs(lng) <= 180;
 
 // The one payload every live page renders from. Truth + guesses only once revealed.
 function baseSnapshot(db, session) {
@@ -21,20 +18,21 @@ function baseSnapshot(db, session) {
   const players = db.listPlayers(session.id).map((p) => ({ id: p.id, name: p.name, answered: answered.has(p.id) }));
   let reveal = null;
   if (session.state === 'revealed' && round) {
-    const { lat, lng, city, country, photo, story, answer, geometry } = round;
+    const t = typeOf(round);
     reveal = {
-      truth: { lat, lng, city, country, photo, story, answer, geometry: geometry || null },
-      guesses: guesses.map((g) => ({
-        playerId: g.player_id, name: g.name, lat: g.lat, lng: g.lng, km: g.km, points: g.points,
-        nearest: distanceToRound(g.lat, g.lng, round).nearest, // computed at reveal time, not stored
-      })),
+      truth: t.truth(round),
+      guesses: guesses.map((g) => {
+        const s = t.score(round, g); // nearest / correct are computed at reveal time, not stored
+        return { playerId: g.player_id, name: g.name, lat: g.lat, lng: g.lng, km: g.km, answer: g.answer,
+          points: g.points, nearest: s.nearest, correct: s.correct };
+      }),
     };
   }
   const standings = db.standings(session.id, revealedOrds(session, rounds))
     .map((s) => ({ playerId: s.player_id, name: s.name, total: s.total }));
   return {
     code: session.code, title: game.title, state: session.state, roundCount: rounds.length,
-    round: round ? { ord: round.ord, question: round.question } : null,
+    round: round ? publicRound(round) : null,
     players, reveal, standings, you: null,
   };
 }
@@ -131,10 +129,12 @@ module.exports = function liveRoutes({ basicAuth, db, uploadsDir }) {
     const me = typeof b.token === 'string' ? db.playerByToken(b.token) : null;
     if (!me || me.session_id !== s.id) return res.status(401).json({ error: 'bad token' });
     if (s.state !== 'open' || b.ord !== s.current_ord) return res.status(409).json({ error: 'round not open' });
-    if (!validCoords(b.lat, b.lng)) return res.status(400).json({ error: 'bad coords' });
     const round = db.getGame(s.game_id).rounds.find((r) => r.ord === s.current_ord);
-    const { km } = distanceToRound(b.lat, b.lng, round);
-    db.upsertGuess(s.id, me.id, round.ord, { lat: b.lat, lng: b.lng, km, points: points(km, round.radius ?? undefined) });
+    const t = typeOf(round);
+    const guess = t.cleanGuess(round, b);
+    if (!guess) return res.status(400).json({ error: 'bad answer' });
+    const { km, points } = t.score(round, guess);
+    db.upsertGuess(s.id, me.id, round.ord, { ...guess, km, points });
     broadcast(s.code);
     res.json({ ok: true }); // nothing about the truth leaves the server before reveal
   });

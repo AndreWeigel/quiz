@@ -16,8 +16,10 @@ CREATE TABLE IF NOT EXISTS rounds (
   game_id  INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   ord      INTEGER NOT NULL,
   question TEXT NOT NULL,
-  lat      REAL NOT NULL,
-  lng      REAL NOT NULL,
+  type     TEXT NOT NULL DEFAULT 'location',
+  spec     TEXT,
+  lat      REAL,
+  lng      REAL,
   city     TEXT, country TEXT, photo TEXT, story TEXT,
   answer   TEXT, radius REAL, geometry TEXT,
   UNIQUE(game_id, ord)
@@ -33,9 +35,10 @@ CREATE TABLE IF NOT EXISTS plays (
 CREATE TABLE IF NOT EXISTS guesses (
   play_id   INTEGER NOT NULL REFERENCES plays(id) ON DELETE CASCADE,
   round_ord INTEGER NOT NULL,
-  lat       REAL NOT NULL,
-  lng       REAL NOT NULL,
-  km        REAL NOT NULL,
+  lat       REAL,
+  lng       REAL,
+  km        REAL,
+  answer    TEXT,
   points    INTEGER NOT NULL,
   UNIQUE(play_id, round_ord)
 );
@@ -60,11 +63,16 @@ CREATE TABLE IF NOT EXISTS session_guesses (
   session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   player_id  INTEGER NOT NULL REFERENCES session_players(id) ON DELETE CASCADE,
   round_ord  INTEGER NOT NULL,
-  lat REAL NOT NULL, lng REAL NOT NULL,
-  km REAL NOT NULL, points INTEGER NOT NULL,
+  lat REAL, lng REAL, km REAL, answer TEXT,
+  points INTEGER NOT NULL,
   UNIQUE(session_id, player_id, round_ord)
 );
 `;
+
+// A guess as stored: coordinates for location rounds, the raw answer (JSON:
+// text, choice index or number) for the rest.
+const guessRow = (g) => ({ lat: g.lat ?? null, lng: g.lng ?? null, km: g.km ?? null,
+  answer: g.answer === undefined ? null : JSON.stringify(g.answer), points: g.points });
 
 // The rounds whose truth may be shown: see the spec's "Revealed rounds" rule.
 function revealedOrds(session, rounds) {
@@ -86,27 +94,45 @@ function openGameDb(dbPath) {
   if (!cols.includes('answer')) db.exec('ALTER TABLE rounds ADD COLUMN answer TEXT');
   if (!cols.includes('radius')) db.exec('ALTER TABLE rounds ADD COLUMN radius REAL');
   if (!cols.includes('geometry')) db.exec('ALTER TABLE rounds ADD COLUMN geometry TEXT');
+  // Files created before 2026-10-27 have location-only rounds and guesses with
+  // NOT NULL coordinates. ALTER can't drop NOT NULL, so rebuild the three tables.
+  if (!cols.includes('type')) {
+    db.transaction(() => {
+      for (const t of ['rounds', 'guesses', 'session_guesses']) db.exec(`ALTER TABLE ${t} RENAME TO ${t}_old`);
+      db.exec(SCHEMA);
+      db.exec(`
+        INSERT INTO rounds (id, game_id, ord, question, lat, lng, city, country, photo, story, answer, radius, geometry)
+          SELECT id, game_id, ord, question, lat, lng, city, country, photo, story, answer, radius, geometry FROM rounds_old;
+        INSERT INTO guesses (play_id, round_ord, lat, lng, km, points)
+          SELECT play_id, round_ord, lat, lng, km, points FROM guesses_old;
+        INSERT INTO session_guesses (session_id, player_id, round_ord, lat, lng, km, points)
+          SELECT session_id, player_id, round_ord, lat, lng, km, points FROM session_guesses_old;
+        DROP TABLE rounds_old; DROP TABLE guesses_old; DROP TABLE session_guesses_old;
+      `);
+    })();
+  }
 
   const insertRound = db.prepare(`
-    INSERT INTO rounds (game_id, ord, question, lat, lng, city, country, photo, story, answer, radius, geometry)
-    VALUES (@game_id, @ord, @question, @lat, @lng, @city, @country, @photo, @story, @answer, @radius, @geometry)
+    INSERT INTO rounds (game_id, ord, question, type, spec, lat, lng, city, country, photo, story, answer, radius, geometry)
+    VALUES (@game_id, @ord, @question, @type, @spec, @lat, @lng, @city, @country, @photo, @story, @answer, @radius, @geometry)
   `);
   const insertGuess = db.prepare(`
-    INSERT INTO guesses (play_id, round_ord, lat, lng, km, points)
-    VALUES (@play_id, @round_ord, @lat, @lng, @km, @points)
+    INSERT INTO guesses (play_id, round_ord, lat, lng, km, answer, points)
+    VALUES (@play_id, @round_ord, @lat, @lng, @km, @answer, @points)
   `);
   const insertPlay = db.transaction((gameId, playerName, total, guesses) => {
     const { lastInsertRowid } = db.prepare(
       'INSERT INTO plays (game_id, player_name, total, created_at) VALUES (?, ?, ?, ?)'
     ).run(gameId, playerName, total, new Date().toISOString());
-    for (const g of guesses) insertGuess.run({ play_id: lastInsertRowid, ...g });
+    for (const g of guesses) insertGuess.run({ play_id: lastInsertRowid, round_ord: g.round_ord, ...guessRow(g) });
     return { id: lastInsertRowid };
   });
   const replaceRounds = db.transaction((id, title, rounds) => {
     db.prepare('UPDATE games SET title = ? WHERE id = ?').run(title, id);
     db.prepare('DELETE FROM rounds WHERE game_id = ?').run(id);
     rounds.forEach((r, ord) => insertRound.run({
-      game_id: id, ord, question: r.question, lat: r.lat, lng: r.lng,
+      game_id: id, ord, question: r.question, type: r.type || 'location', spec: r.spec ? JSON.stringify(r.spec) : null,
+      lat: r.lat ?? null, lng: r.lng ?? null,
       city: r.city ?? null, country: r.country ?? null, photo: r.photo ?? null, story: r.story ?? null,
       answer: r.answer ?? null, radius: r.radius ?? null,
       geometry: r.geometry ? JSON.stringify(r.geometry) : null,
@@ -137,10 +163,10 @@ function openGameDb(dbPath) {
     return getSession(code);
   });
   const upsertGuessStmt = db.prepare(`
-    INSERT INTO session_guesses (session_id, player_id, round_ord, lat, lng, km, points)
-    VALUES (@session_id, @player_id, @round_ord, @lat, @lng, @km, @points)
+    INSERT INTO session_guesses (session_id, player_id, round_ord, lat, lng, km, answer, points)
+    VALUES (@session_id, @player_id, @round_ord, @lat, @lng, @km, @answer, @points)
     ON CONFLICT(session_id, player_id, round_ord) DO UPDATE SET
-      lat = excluded.lat, lng = excluded.lng, km = excluded.km, points = excluded.points
+      lat = excluded.lat, lng = excluded.lng, km = excluded.km, answer = excluded.answer, points = excluded.points
   `);
 
   return {
@@ -166,7 +192,7 @@ function openGameDb(dbPath) {
       const game = db.prepare('SELECT * FROM games WHERE id = ?').get(id);
       if (!game) return null;
       const rounds = db.prepare('SELECT * FROM rounds WHERE game_id = ? ORDER BY ord').all(id)
-        .map((r) => ({ ...r, geometry: r.geometry ? JSON.parse(r.geometry) : null }));
+        .map((r) => ({ ...r, spec: r.spec ? JSON.parse(r.spec) : null, geometry: r.geometry ? JSON.parse(r.geometry) : null }));
       return { game, rounds };
     },
 
@@ -232,15 +258,14 @@ function openGameDb(dbPath) {
       return db.prepare('SELECT id, name, joined_at FROM session_players WHERE session_id = ? ORDER BY id').all(sessionId);
     },
     upsertGuess(sessionId, playerId, ord, g) {
-      upsertGuessStmt.run({ session_id: sessionId, player_id: playerId, round_ord: ord,
-        lat: g.lat, lng: g.lng, km: g.km, points: g.points });
+      upsertGuessStmt.run({ session_id: sessionId, player_id: playerId, round_ord: ord, ...guessRow(g) });
     },
     listGuesses(sessionId, ord) {
       return db.prepare(`
-        SELECT g.player_id, p.name, g.lat, g.lng, g.km, g.points
+        SELECT g.player_id, p.name, g.lat, g.lng, g.km, g.answer, g.points
         FROM session_guesses g JOIN session_players p ON p.id = g.player_id
-        WHERE g.session_id = ? AND g.round_ord = ? ORDER BY g.km, p.id
-      `).all(sessionId, ord);
+        WHERE g.session_id = ? AND g.round_ord = ? ORDER BY g.points DESC, g.km, p.id
+      `).all(sessionId, ord).map((g) => ({ ...g, answer: g.answer == null ? null : JSON.parse(g.answer) }));
     },
     // Cumulative points over the given round ords; everyone who joined appears (0 if no guess).
     standings(sessionId, ords) {

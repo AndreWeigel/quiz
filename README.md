@@ -1,9 +1,9 @@
 # Quiz
 
-A geography quiz on a globe. The host builds rounds ("Where is the highest
-railway station in the world?"), each with a secret point or shape, an
-optional photo and a story. Players tap the globe, score by distance, and see
-the reveal. Two ways to play:
+A quiz on a globe. The host builds rounds of four types — **location** ("Where
+is the highest railway station in the world?": tap the globe, score by
+distance), **typed answer**, **multiple choice** and **number estimate** — each
+with an optional photo and a story shown on the reveal. Two ways to play:
 
 - **Self-paced**: share `/<slug>`; everyone plays whenever and lands on a leaderboard.
 - **Live**: press "Go live" in the builder, share `/live/<code>`, and drive the
@@ -42,9 +42,9 @@ Admin (`ADMIN_TOKEN`):
 - `GET /host/<code>` — the host page for a live session
 
 API — self-paced: `GET /api/<slug>` (rounds without answers), `POST /api/<slug>/guess`
-`{ ord, lat, lng }` → `{ km, points, nearest, truth }`, `POST /api/<slug>/plays`,
+`{ ord, lat, lng }` or `{ ord, answer }` → `{ points, truth, … }`, `POST /api/<slug>/plays`,
 `GET /api/<slug>/leaderboard`. Live: `GET /live/api/<code>`, `POST …/join`,
-`POST …/guess` `{ token, ord, lat, lng }`, `GET …/state?token=`, `GET …/events?token=`
+`POST …/guess` `{ token, ord, lat, lng | answer }`, `GET …/state?token=`, `GET …/events?token=`
 (Server-Sent Events), `GET …/photo/<file>` (only once that round is revealed).
 Admin: `GET/POST /api/admin/games`, `GET/PUT/DELETE /api/admin/games/:id`,
 `GET/POST /api/admin/games/:id/sessions`, `POST /api/admin/sessions/:code/next|end`,
@@ -52,7 +52,18 @@ Admin: `GET/POST /api/admin/games`, `GET/PUT/DELETE /api/admin/games/:id`,
 
 ## Rounds
 
-A round's answer is a point with a full-points `radius` in km, or a **shape**:
+Every round has a `type`; the type's own logic (validation, what players see,
+scoring, the reveal) lives in `src/types.js`. Spec:
+`docs/superpowers/specs/2026-10-27-question-types-design.md`.
+
+- **text** — accepted answers; case, accents, punctuation, a leading "the" and
+  1–2 typos are forgiven (answers with digits must match exactly). 100 or 0.
+- **choice** — 2–6 options, one correct. 100 or 0.
+- **number** — `100` within `tolerance`, then points halve every `halve` units
+  (default 10 % of the answer; set it for years).
+- **location** — below.
+
+A location round's answer is a point with a full-points `radius` in km, or a **shape**:
 paste GeoJSON (a line or an area) into the round's Shape box — draw one at
 geojson.io, export from OpenStreetMap at overpass-turbo.eu, simplify big files
 at mapshaper.org; max 5,000 points; shapes crossing the 180° meridian are

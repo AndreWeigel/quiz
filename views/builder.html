@@ -77,6 +77,16 @@
     border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font: .78rem var(--mono); }
   .addph:hover { border-color: rgba(34,211,238,.4); color: var(--cyan); }
   .story { width: 100%; resize: vertical; min-height: 34px; font: .82rem/1.45 var(--body); }
+  select.type { background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 8px; color: var(--cyan);
+    padding: 6px 4px; font: .78rem var(--mono); flex: none; }
+  .accept { width: 100%; min-height: 56px; resize: vertical; margin: 8px 0 2px; }
+  .tnote { font: .72rem var(--mono); color: var(--muted); margin-bottom: 6px; }
+  .opt { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
+  .opt input[type=text] { flex: 1; min-width: 0; }
+  .opt input[type=radio] { accent-color: var(--cyan); width: 18px; height: 18px; flex: none; margin: 0; }
+  .numrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .numrow label { display: flex; flex-direction: column; gap: 3px; font: .72rem var(--mono); color: var(--muted); flex: 1 1 120px; min-width: 0; }
+  .numrow input { width: 100%; }
   .del { border: 0; background: none; color: var(--muted); font-size: 1.05rem; line-height: 1;
     min-width: 36px; min-height: 36px; }
   .del:hover { color: var(--red); }
@@ -153,6 +163,43 @@ const shapeLabel = (r) => (r.shapeLabel || (r.geometry ? shapeLabelOf(r.geometry
 function countPositions(g) { let n = 0; const walk = (c) => { if (!Array.isArray(c)) return; if (typeof c[0] === 'number') n++; else c.forEach(walk); }; walk(g.coordinates); return n; }
 const setStatus = (t) => { $('status').textContent = t; };
 
+// Question types (server: src/types.js). Location rounds keep today's fields.
+const TYPE_LABELS = { location: '📍 Location', text: '✎ Typed', choice: '☰ Choice', number: '# Number' };
+const Q_HINT = { location: 'Question — e.g. Where was Daniel born?', text: 'Question — e.g. Which tunnel is the longest in the world?',
+  choice: 'Question — e.g. Which station has the most platforms?', number: 'Question — e.g. How long is the Gotthard Base Tunnel?' };
+const NEW_SPEC = { text: () => ({ accept: [] }), choice: () => ({ options: ['', ''], correct: 0 }), number: () => ({}) };
+const typeOf = (r) => r.type || 'location';
+const defaultHalve = (v) => (Number.isFinite(v) ? +Math.max(Math.abs(v) / 10, 1).toPrecision(3) : '');
+// Anything typed into the type-specific fields, i.e. what switching type would throw away.
+const typeFilled = (r) => Number.isFinite(r.lat) || !!r.geometry
+  || (r.spec != null && JSON.stringify(r.spec) !== JSON.stringify(NEW_SPEC[typeOf(r)]?.()));
+function typeFields(r, i) {
+  const s = r.spec || {};
+  if (typeOf(r) === 'text') return `
+    <textarea class="accept" data-accept="${i}" aria-label="Accepted answers, one per line"
+      placeholder="Accepted answers — one per line, e.g.&#10;Gotthard Base Tunnel&#10;Gotthard">${esc((s.accept || []).join('\n'))}</textarea>
+    <div class="tnote">Case, accents, punctuation and small typos are forgiven. Answers with digits must match exactly.</div>`;
+  if (typeOf(r) === 'choice') {
+    const opts = s.options || [];
+    return `<div class="opts">${opts.map((o, j) => `
+      <div class="opt">
+        <input type="radio" name="correct${i}" data-correct="${i}:${j}" ${s.correct === j ? 'checked' : ''} aria-label="Mark option ${j + 1} correct" title="The correct answer">
+        <input type="text" data-opt="${i}:${j}" value="${esc(o)}" placeholder="Option ${j + 1}" aria-label="Option ${j + 1}">
+        <button class="del" data-delopt="${i}:${j}" ${opts.length <= 2 ? 'disabled' : ''} title="Remove option" aria-label="Remove option ${j + 1}">✕</button>
+      </div>`).join('')}
+      ${opts.length < 6 ? `<button class="sm" data-addopt="${i}">+ option</button>` : ''}
+      <div class="tnote">Tick the correct option. Right = 100 pts, wrong = 0.</div></div>`;
+  }
+  const num = (k, label, ph, extra = '') => `<label>${label}<input type="text" inputmode="decimal" data-num="${i}:${k}"
+    value="${esc(s[k] ?? '')}" placeholder="${esc(ph)}" ${extra}></label>`;
+  return `<div class="numrow">
+      ${num('value', 'Answer', 'e.g. 57')}
+      <label>Unit (optional)<input type="text" data-num="${i}:unit" value="${esc(s.unit ?? '')}" placeholder="e.g. km" maxlength="20"></label>
+      ${num('tolerance', 'Full points within ±', '0')}
+      ${num('halve', 'Points halve every ±', defaultHalve(s.value) || '10 % of answer', 'title="Leave empty for 10 % of the answer; set it for years (e.g. 10)"')}
+    </div>`;
+}
+
 function render() {
   $('back').hidden = $('save').hidden = !editing;
   $('new').hidden = !!editing;
@@ -190,12 +237,14 @@ function renderEditor() {
     <div class="round">
       <div class="head">
         <span class="n">#${i + 1}</span>
-        <input type="text" class="q" data-q="${i}" placeholder="Question — e.g. Where was Daniel born?" value="${esc(r.question)}">
+        <select class="type" data-type="${i}" aria-label="Question type">${Object.entries(TYPE_LABELS).map(([v, l]) =>
+          `<option value="${v}" ${typeOf(r) === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <input type="text" class="q" data-q="${i}" placeholder="${esc(Q_HINT[typeOf(r)])}" value="${esc(r.question)}">
         <button class="sm" data-up="${i}" aria-label="Move round up" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="sm" data-down="${i}" aria-label="Move round down" ${i === rounds.length - 1 ? 'disabled' : ''}>↓</button>
         <button class="del" data-delround="${i}" title="Remove round" aria-label="Remove round">✕</button>
       </div>
-      <div class="locrow">
+      ${typeOf(r) !== 'location' ? typeFields(r, i) : `<div class="locrow">
         <input type="text" class="city" data-city="${i}" placeholder="City — type, then pick from the list"
           value="${esc([r.city, r.country].filter(Boolean).join(', '))}" ${r.geometry ? 'disabled' : ''}>
         <input type="text" class="coords" data-coords="${i}" placeholder="or lat, lng" value="${esc(fmtCoords(r))}" ${r.geometry ? 'disabled title="Anchor set from the shape"' : ''}>
@@ -210,13 +259,14 @@ function renderEditor() {
           export from OpenStreetMap at <a href="https://overpass-turbo.eu" target="_blank" rel="noopener">overpass-turbo.eu</a> ·
           simplify big files at <a href="https://mapshaper.org" target="_blank" rel="noopener">mapshaper.org</a></div>
         ${r.geometry ? `<button class="sm" data-mappick="${i}">Preview</button> <button class="sm" data-shapeclear="${i}">Clear shape</button>` : ''}
-      </details>
+      </details>`}
       <div class="ansrow">
         <input type="text" class="answer" data-answer="${i}" value="${esc(r.answer || '')}" aria-label="Answer label for the reveal"
-          placeholder="Answer label for the reveal (optional) — e.g. Tanggula, Qinghai–Tibet Railway, China">
-        <input type="text" inputmode="decimal" class="radius" data-radius="${i}" value="${esc(r.radius ?? '')}"
+          placeholder="${typeOf(r) === 'location' ? 'Answer label for the reveal (optional) — e.g. Tanggula, Qinghai–Tibet Railway, China'
+            : 'Answer label for the reveal (optional) — defaults to the right answer'}">
+        ${typeOf(r) === 'location' ? `<input type="text" inputmode="decimal" class="radius" data-radius="${i}" value="${esc(r.radius ?? '')}"
           placeholder="±25" title="Full points within this many km of the pin" aria-label="Full-points radius in km">
-        <span class="unit">km</span>
+        <span class="unit">km</span>` : ''}
       </div>
       <div class="phrow">
         ${r.photo ? `<img src="/uploads/${esc(r.photo)}" alt=""><button class="del" data-delphoto="${i}" title="Remove photo" aria-label="Remove photo">✕</button>`
@@ -358,6 +408,15 @@ main.addEventListener('click', async (e) => {
   if (down !== undefined) return swap(+down, +down + 1);
   if (delround !== undefined) { editing.rounds.splice(+delround, 1); editing.dirty = true; return render(); }
   if (delphoto !== undefined) { delete editing.rounds[+delphoto].photo; editing.dirty = true; return render(); }
+  const addopt = btn('addopt');
+  if (addopt !== undefined) { editing.rounds[+addopt].spec.options.push(''); editing.dirty = true; return render(); }
+  const delopt = btn('delopt');
+  if (delopt !== undefined) {
+    const [i, j] = delopt.split(':').map(Number), s = editing.rounds[i].spec;
+    s.options.splice(j, 1);
+    if (s.correct === j) s.correct = 0; else if (s.correct > j) s.correct -= 1;
+    editing.dirty = true; return render();
+  }
   const shapeclear = btn('shapeclear');
   if (shapeclear !== undefined) {
     const r = editing.rounds[+shapeclear];
@@ -369,7 +428,31 @@ main.addEventListener('click', async (e) => {
 main.addEventListener('change', async (e) => {
   if (!editing) return;
   const val = (a) => { const el = e.target.closest(`[data-${a}]`); return el ? [+el.dataset[a], el] : [null, null]; };
-  let [i, el] = val('q');
+  let [i, el] = val('type');
+  if (el) {
+    const r = editing.rounds[i];
+    if (typeFilled(r) && !confirm('Switch the question type? This round’s answer fields are cleared; question, photo and story stay.')) return render();
+    for (const k of ['spec', 'lat', 'lng', 'city', 'country', 'geometry', 'radius', 'shapeText', 'shapeLabel', 'shapeErr']) delete r[k];
+    r.type = el.value;
+    if (r.type === 'location') { r.lat = NaN; r.lng = NaN; } else r.spec = NEW_SPEC[r.type]();
+    editing.dirty = true; return render();
+  }
+  [i, el] = val('accept');
+  if (el) { editing.rounds[i].spec = { accept: el.value.split('\n').map((x) => x.trim()).filter(Boolean) }; editing.dirty = true; return render(); }
+  const pair = (a) => { const t = e.target.closest(`[data-${a}]`); return t ? [...t.dataset[a].split(':'), t] : null; };
+  let p = pair('opt');
+  if (p) { editing.rounds[+p[0]].spec.options[+p[1]] = p[2].value; editing.dirty = true; return render(); }
+  p = pair('correct');
+  if (p) { editing.rounds[+p[0]].spec.correct = +p[1]; editing.dirty = true; return render(); }
+  p = pair('num');
+  if (p) {
+    const s = editing.rounds[+p[0]].spec, k = p[1], raw = p[2].value.trim();
+    if (k === 'unit') { if (raw) s.unit = raw; else delete s.unit; }
+    else if (raw === '') delete s[k];
+    else s[k] = Number(raw.replace(/[\s_']/g, '')); // NaN stays visible as a save error
+    editing.dirty = true; return render();
+  }
+  [i, el] = val('q');
   if (el) { editing.rounds[i].question = el.value; editing.dirty = true; return render(); }
   [i, el] = val('story');
   if (el) { editing.rounds[i].story = el.value; editing.dirty = true; return render(); }
@@ -469,12 +552,20 @@ $('back').addEventListener('click', () => {
 });
 
 $('save').addEventListener('click', async () => {
-  const bad = editing.rounds.findIndex((r) => r.shapeErr || !r.question.trim() || (!Number.isFinite(r.lat) && !r.geometry));
-  if (bad !== -1) {
-    return alert(editing.rounds[bad].shapeErr
-      ? `Round #${bad + 1} has a shape error — fix or clear the shape before saving.`
-      : `Round #${bad + 1} needs a question and a location before saving.`);
-  }
+  const problem = (r) => {
+    if (!r.question.trim()) return 'needs a question';
+    const s = r.spec || {};
+    switch (typeOf(r)) {
+      case 'text': return s.accept && s.accept.length ? '' : 'needs at least one accepted answer';
+      case 'choice': return s.options.length >= 2 && s.options.every((o) => o.trim()) ? '' : 'needs 2–6 filled-in options';
+      case 'number':
+        if (!Number.isFinite(s.value)) return 'needs a number as its answer';
+        return ['tolerance', 'halve'].every((k) => s[k] == null || (Number.isFinite(s[k]) && (k === 'halve' ? s[k] > 0 : s[k] >= 0))) ? '' : 'has a margin that is not a number';
+      default: return r.shapeErr ? 'has a shape error — fix or clear the shape' : (Number.isFinite(r.lat) || r.geometry) ? '' : 'needs a location';
+    }
+  };
+  const bad = editing.rounds.findIndex(problem);
+  if (bad !== -1) return alert(`Round #${bad + 1} ${problem(editing.rounds[bad])} before saving.`);
   if ((editing.sessions || []).some((s) => s.state !== 'finished')
     && !confirm('A live session is running on this game. Saving changes the rounds under it. Continue?')) return;
   $('save').disabled = true;
@@ -488,7 +579,7 @@ $('save').addEventListener('click', async () => {
     if (resp.status === 400) {
       const d = await resp.json();
       if (Number.isInteger(d.round) && editing.rounds[d.round]) {
-        editing.rounds[d.round].shapeErr = d.error;
+        if (typeOf(editing.rounds[d.round]) === 'location') editing.rounds[d.round].shapeErr = d.error;
         render();
         document.querySelectorAll('.round')[d.round].scrollIntoView({ behavior: 'smooth', block: 'center' });
       }

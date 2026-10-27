@@ -94,7 +94,7 @@ test('guess only while open and for the current round; upsert; hidden until reve
     assert.equal((await guess(fer.token, 0, 33, 91)).status, 409); // lobby
     let snap = await (await next(base, code)).json();
     assert.equal(snap.state, 'open');
-    assert.deepEqual(snap.round, { ord: 0, question: 'Highest station?' });
+    assert.deepEqual(snap.round, { ord: 0, question: 'Highest station?', type: 'location' });
     assert.equal(snap.reveal, null);
 
     assert.equal((await guess('badtoken', 0, 33, 91)).status, 401);
