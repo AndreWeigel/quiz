@@ -146,7 +146,7 @@ real guess. Honor system, by design.
    iframes the target and steers it via `window.map` / `window.playState`.
 5. On a Node ≥ 26 machine `npm install` fails to build better-sqlite3 11; use
    `npm install --ignore-scripts` then `npm install --no-save better-sqlite3@13`
-   (never commit that bump). Production is Node 20 via the Dockerfile, where 11
+   (never commit that bump). Production is Node 22 via the Dockerfile, where 11
    builds fine.
 
 ## State of play
