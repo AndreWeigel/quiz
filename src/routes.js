@@ -9,6 +9,7 @@ const liveRoutes = require('./live');
 const VIEWS = path.join(__dirname, '..', 'views');
 // Same pattern the upload endpoint in src/index.js generates.
 const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/;
+const THEMES = ['gameshow', 'railway'];
 
 // Round from the builder → { round } with a clean row, or { error } with the message to show.
 function cleanRound(r) {
@@ -47,13 +48,14 @@ module.exports = function gameRoutes({ basicAuth, dbPath = 'data/game.db', uploa
     const b = req.body || {};
     const title = optStr(b.title);
     if (!title || !Array.isArray(b.rounds)) return res.status(400).json({ error: 'invalid title or rounds' });
+    if (b.theme != null && !THEMES.includes(b.theme)) return res.status(400).json({ error: 'unknown theme' });
     const cleaned = b.rounds.map(cleanRound);
     const bad = cleaned.findIndex((c) => c.error);
     if (bad !== -1) {
       const error = cleaned[bad].error === 'invalid round' ? 'invalid title or rounds' : cleaned[bad].error;
       return res.status(400).json({ error, round: bad });
     }
-    res.json(db.saveGame(+req.params.id, title, cleaned.map((c) => c.round)));
+    res.json(db.saveGame(+req.params.id, title, cleaned.map((c) => c.round), b.theme));
   });
 
   router.delete('/api/admin/games/:id', basicAuth, (req, res) => {
@@ -65,7 +67,7 @@ module.exports = function gameRoutes({ basicAuth, dbPath = 'data/game.db', uploa
   router.get('/api/:slug', (req, res) => {
     const g = db.getGameBySlug(req.params.slug);
     if (!g) return res.status(404).json({ error: 'no such game' });
-    res.json({ title: g.game.title, rounds: g.rounds.map(publicRound) });
+    res.json({ title: g.game.title, theme: g.game.theme, rounds: g.rounds.map(publicRound) });
   });
 
   // Stateless per-round reveal: the client sends a guess, gets truth + score.

@@ -1,130 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="gameshow">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MapTap · Live</title>
+<title>Quiz · Live</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.css">
-<style>
-  :root {
-    color-scheme: dark;
-    --bg: #070b1c; --bg-2: #0a1030; --panel: rgba(16,22,52,.92); --border: rgba(130,155,255,.16);
-    --text: #eaf0ff; --muted: #98a4d4; --cyan: #22d3ee; --gold: #ffd15c; --red: #ff6b6b;
-    --body: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; height: 100vh; overflow: hidden; color: var(--text); font: 16px/1.5 var(--body);
-    background: radial-gradient(1200px 800px at 50% -5%, var(--bg-2), var(--bg) 70%); }
-  #map { position: fixed; inset: 0; }
-  .credit { position: fixed; right: 8px; bottom: 6px; z-index: 3; color: rgba(152,164,212,.8);
-    font: .7rem var(--mono); pointer-events: none; }
-  [hidden] { display: none !important; }
-
-  .top { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4;
-    width: min(560px, calc(100vw - 24px)); background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 10px 16px; text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,.45); }
-  .top .t { font: .7rem var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--cyan); }
-  .top .q { font: 600 1.02rem/1.4 var(--body); }
-  .top .q .rno { color: var(--muted); font: .8rem var(--mono); margin-right: 8px; }
-  .top .hint { font: .75rem var(--mono); color: var(--muted); }
-
-  #action { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 5;
-    font: 700 1rem var(--body); cursor: pointer; border-radius: 999px; padding: 12px 30px;
-    border: 1px solid rgba(34,211,238,.5); background: rgba(11,50,64,.92); color: var(--cyan);
-    box-shadow: 0 6px 24px rgba(0,0,0,.5); }
-  #action:hover { background: rgba(34,211,238,.25); }
-
-  #panel { position: fixed; top: 86px; right: 14px; z-index: 4; width: min(320px, calc(100vw - 28px));
-    max-height: calc(100vh - 170px); overflow-y: auto; background: var(--panel);
-    border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px;
-    box-shadow: 0 8px 30px rgba(0,0,0,.5); }
-  #panel h2 { font: .7rem var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--cyan); margin: 0 0 8px; }
-  #panel .ans { font-weight: 700; margin-bottom: 8px; }
-  #panel img { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; margin: 8px 0 4px; }
-  @media (max-width: 699px) { #panel img { max-height: 110px; object-fit: cover; } }
-  #panel .story { font-size: .88rem; white-space: pre-wrap; margin-top: 6px; }
-  #panel table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-  #panel td { padding: 5px 4px; border-top: 1px solid var(--border); }
-  #panel td.n { text-align: right; font-family: var(--mono); color: var(--muted); white-space: nowrap; }
-  #panel td.pts { text-align: right; font-family: var(--mono); color: var(--gold); white-space: nowrap; }
-  #panel tr.me td { color: var(--gold); font-weight: 700; }
-  #panel .names { display: flex; flex-wrap: wrap; gap: 6px; }
-  #panel .names span { font: .8rem var(--mono); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); }
-
-  .ov { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center;
-    background: rgba(7,11,28,.7); backdrop-filter: blur(3px); padding: 16px; }
-  .ov .card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px;
-    padding: 26px 28px; width: min(420px, 100%); max-height: 86vh; overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0,0,0,.6); text-align: center; }
-  .ov h1 { font: 1.15rem var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--cyan); margin: 0 0 8px; }
-  .ov p { color: var(--muted); font-size: .9rem; margin: 0 0 16px; }
-  .ov .err { color: var(--red); }
-  .ov input { width: 100%; background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 10px;
-    color: var(--text); font: 1rem var(--body); padding: 10px 12px; text-align: center; margin-bottom: 14px; }
-  .ov input:focus { outline: none; border-color: rgba(34,211,238,.4); }
-  .ov button { font: 700 .95rem var(--body); cursor: pointer; border-radius: 999px; padding: 10px 28px;
-    border: 1px solid rgba(34,211,238,.5); background: rgba(34,211,238,.15); color: var(--cyan); }
-  .ov table { width: 100%; border-collapse: collapse; font-size: .95rem; text-align: left; }
-  .ov td { padding: 6px 4px; border-top: 1px solid var(--border); }
-  .ov td.pts { text-align: right; font-family: var(--mono); }
-  .ov tr.me td { color: var(--gold); font-weight: 700; }
-
-  /* Typed / choice / number rounds: the answer card sits above the action button (host: options, read-only). */
-  #answer { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 5;
-    width: min(460px, calc(100vw - 24px)); background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 8px; }
-  #answer .numwrap { display: flex; align-items: center; gap: 10px; }
-  #answer input { flex: 1; min-width: 0; background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 10px;
-    color: var(--text); font: 1.05rem var(--body); padding: 12px; text-align: center; }
-  #answer input:focus { outline: none; border-color: rgba(34,211,238,.5); }
-  #answer .unit { font: .95rem var(--mono); color: var(--muted); }
-  #answer .opt { text-align: left; font: 600 .98rem var(--body); padding: 12px 14px; border-radius: 12px; cursor: pointer;
-    border: 1px solid var(--border); background: rgba(10,14,34,.72); color: var(--text); }
-  #answer .opt:disabled { cursor: default; }
-  #answer .opt:not(:disabled):hover { border-color: rgba(34,211,238,.4); }
-  #answer .opt.sel { border-color: var(--cyan); background: rgba(34,211,238,.15); color: var(--cyan); }
-  body.host #answer { left: auto; right: 14px; transform: none; bottom: 14px; } /* host bar owns the bottom-left */
-  #panel .o { font-size: .9rem; padding: 2px 0; color: var(--muted); display: flex; gap: 8px; }
-  #panel .o .c { margin-left: auto; font-family: var(--mono); }
-  #panel .o.right { color: var(--gold); font-weight: 700; }
-  #panel td.ok { color: var(--cyan); } #panel td.no { color: var(--muted); }
-
-  /* pins on the reveal: a dot plus the player's name, as DOM markers (no glyph source needed) */
-  .pin { display: flex; align-items: center; gap: 5px; pointer-events: none; } /* MapLibre owns the inline transform; the dot is centred via the marker's offset */
-  .pin .dot { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid var(--bg); box-shadow: 0 0 0 1px rgba(255,255,255,.4); }
-  .pin.mine .dot { background: var(--cyan); }
-  .pin .name { font: 700 .72rem var(--mono); color: #fff; text-shadow: 0 1px 3px #000, 0 0 6px #000; white-space: nowrap; }
-  .pin.mine .name { color: var(--cyan); }
-
-  /* host control bar */
-  #host { position: fixed; left: 14px; bottom: 14px; z-index: 6; width: min(340px, calc(100vw - 28px));
-    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px;
-    box-shadow: 0 8px 30px rgba(0,0,0,.5); }
-  #host h2 { font: .7rem var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin: 0 0 8px; }
-  #host .link { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
-  #host .link input { flex: 1; min-width: 0; background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font: .8rem var(--mono); padding: 6px 8px; }
-  #host button { font: 700 .85rem var(--body); cursor: pointer; border-radius: 999px; padding: 7px 14px;
-    border: 1px solid rgba(34,211,238,.5); background: rgba(34,211,238,.15); color: var(--cyan); }
-  #host #next { width: 100%; font-size: 1rem; padding: 11px 16px; margin: 6px 0; background: rgba(34,211,238,.25); }
-  #host #end { border-color: rgba(255,107,107,.5); background: rgba(255,107,107,.12); color: var(--red); }
-  #host .count { font: .8rem var(--mono); color: var(--muted); }
-  #host .plist { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
-  #host .plist span { font: .75rem var(--mono); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
-  #host .plist span.ok { color: var(--text); border-color: rgba(34,211,238,.5); }
-</style>
+<link rel="stylesheet" href="/assets/quiz.css">
 </head>
-<body>
+<body class="stage">
 <div id="map"></div>
 <div class="top">
-  <div class="t" id="gtitle">MapTap · Live</div>
-  <div class="q"><span class="rno" id="rno"></span><span id="question">Loading…</span></div>
-  <div class="hint" id="hint"></div>
+  <div class="hud"><span id="rno"></span><span class="t" id="gtitle">Live</span><span class="tot" id="tot"></span></div>
+  <div class="bar" id="bar"></div>
+  <h1 class="q" id="question">Loading…</h1>
+  <span class="hint" id="hint"></span>
 </div>
-<button id="action" hidden></button>
 <div id="answer" hidden></div>
-<div id="panel" hidden></div>
+<button id="action" hidden></button>
+<div id="panel" class="sheet" hidden aria-live="polite"></div>
 <div id="host" hidden>
   <h2>Host</h2>
   <div class="link"><input id="joinlink" readonly aria-label="Join link"><button id="copy">Copy</button></div>
@@ -134,23 +27,24 @@
   <button id="end">End session</button>
 </div>
 <div class="ov" id="nameov" hidden><div class="card">
-  <h1 id="wtitle">MapTap</h1>
+  <h1 id="wtitle">Live</h1>
   <p>Type your name to join. When the host opens a round, tap the globe, type, or pick your answer.</p>
   <p class="err" id="nameerr" hidden></p>
   <input id="pname" maxlength="40" placeholder="Your name" aria-label="Your name" autocomplete="off">
-  <button id="join">Join</button>
+  <button class="go" id="join">Join</button>
 </div></div>
 <div class="ov" id="endov" hidden><div class="card">
   <h1 id="endtitle"></h1>
-  <p>Final scoreboard</p>
-  <table id="board"></table>
+  <p id="endsub">Final scoreboard</p>
+  <div id="board"></div>
 </div></div>
 <div class="credit">Imagery © Esri &amp; contributors · MapLibre</div>
 <script type="module">
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
+import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum }
+  from '/assets/ui.js';
 
 const $ = (id) => document.getElementById(id);
-const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const code = location.pathname.split('/').filter(Boolean).pop();
 const HOST = location.pathname.startsWith('/host/');
 const KEY = `maptap:live:${code}`;
@@ -158,6 +52,7 @@ let token = null;
 try { token = localStorage.getItem(KEY); } catch {}
 const api = (p, opts) => fetch(`/live/api/${code}${p}`, opts);
 const postJson = (p, body) => api(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+if (HOST) document.body.classList.add('host');
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -196,67 +91,31 @@ map.on('load', () => {
   map.addLayer({ id: 'truth-line', type: 'line', source: 'truth', filter: ['!=', ['geometry-type'], 'Point'],
     paint: { 'line-color': '#ffd15c', 'line-width': 3 } });
   map.addLayer({ id: 'truth', type: 'circle', source: 'truth', filter: ['==', ['geometry-type'], 'Point'],
-    paint: { 'circle-radius': 7, 'circle-color': '#ffd15c', 'circle-stroke-color': '#070b1c', 'circle-stroke-width': 2 } });
+    paint: { 'circle-radius': 8, 'circle-color': '#ffd15c', 'circle-stroke-color': '#070b1c', 'circle-stroke-width': 3 } });
   ready = true;
 });
 const whenLoaded = (fn) => (ready ? fn() : map.once('load', fn));
 
 let snap = null;           // latest server snapshot
-let shown = { state: null, ord: null }; // what the globe currently reflects, to know when to reset
-let marker = null;         // my draggable pin while a round is open
-let sent = false;          // my current pin has been accepted by the server
+let shown = { state: null, ord: null }; // what the screen currently reflects, to know when to reset
+let marker = null;         // my draggable pin while a location round is open
+let sent = false;          // my current answer has been accepted by the server
 let pins = [];             // DOM markers on the reveal
 let pick = null;           // my typed / chosen / estimated answer on non-location rounds
-if (HOST) document.body.classList.add('host');
+let themed = false;
 
-function setBanner(question, hint, rno) {
-  $('rno').textContent = rno || '';
+function setQ(question, hint = '', soft = false) {
   $('question').textContent = question;
-  $('hint').textContent = hint || '';
+  $('hint').textContent = hint;
+  $('hint').classList.toggle('soft', soft);
 }
-const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const isMe = (playerId) => !!(snap.you && snap.you.playerId === playerId);
 const photoUrl = (file) => `/live/api/${code}/photo/${file}`;
-
 const isLoc = () => !snap.round || snap.round.type === 'location';
-const HINTS = { location: 'tap the globe to drop your pin', text: 'type your answer', choice: 'pick one', number: 'your best estimate' };
-// "57,5" → 57.5, "9,289" / "9 289" → 9289; null if it isn't a number.
-const parseNum = (raw) => {
-  let v = raw.replace(/[\s'_]/g, '');
-  v = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(v) ? v.replace(/,/g, '') : v.replace(',', '.');
-  return v && Number.isFinite(Number(v)) ? Number(v) : null;
-};
-const fmtNum = (n) => n.toLocaleString('en', { maximumFractionDigits: 3 });
 // A player's answer as text, for the reveal table.
 const answerText = (a) => (snap.round.type === 'choice' ? snap.round.options[a] ?? '?'
   : snap.round.type === 'number' ? `${fmtNum(a)}${snap.round.unit ? ' ' + snap.round.unit : ''}` : `“${a}”`);
-
-// Built once per round (rebroadcasts must not wipe what the player is typing). Untrusted text via textContent only.
-function buildAnswer() {
-  const r = snap.round, box = $('answer');
-  box.replaceChildren();
-  pick = null;
-  if (r.type === 'location') return;
-  if (r.type === 'choice') {
-    r.options.forEach((o, i) => {
-      const b = el('button', 'opt', o);
-      b.type = 'button'; b.disabled = HOST;
-      b.onclick = () => { pick = i; sent = false; for (const x of box.children) x.classList.toggle('sel', x === b); renderOpen(); };
-      box.appendChild(b);
-    });
-  } else if (!HOST) {
-    const wrap = el('div', 'numwrap'), inp = el('input');
-    inp.autocomplete = 'off';
-    inp.placeholder = r.type === 'number' ? 'Your estimate' : 'Type your answer';
-    if (r.type === 'number') inp.inputMode = 'decimal'; else inp.maxLength = 100;
-    inp.setAttribute('aria-label', inp.placeholder);
-    inp.oninput = () => { pick = r.type === 'number' ? parseNum(inp.value) : (inp.value.trim() || null); sent = false; renderOpen(); };
-    inp.onkeydown = (e) => { if (e.key === 'Enter') confirmGuess(); };
-    wrap.appendChild(inp);
-    if (r.unit) wrap.appendChild(el('span', 'unit', r.unit));
-    box.appendChild(wrap);
-  }
-}
+const myTotal = () => (snap.standings.find((s) => isMe(s.playerId)) || {}).total;
 
 function clearGlobe() {
   if (marker) { marker.remove(); marker = null; }
@@ -265,42 +124,80 @@ function clearGlobe() {
   whenLoaded(() => { map.getSource('truth').setData(EMPTY); map.getSource('lines').setData(EMPTY); });
 }
 
+// Built once per round (rebroadcasts must not wipe what the player is typing).
+function buildAnswer() {
+  pick = null;
+  if (isLoc()) { $('answer').replaceChildren(); return; }
+  answerWidget($('answer'), snap.round, { readOnly: HOST, onEnter: confirmGuess,
+    onChange: (v) => { pick = v; sent = false; renderOpen(); } });
+}
+
 function renderLobby() {
-  setBanner('Waiting for the host to start…', `${snap.players.length} joined`);
+  hud($('rno'), $('bar'), null, 0);
+  setQ(HOST ? 'Waiting for players…' : 'Waiting for the host to start…', `${snap.players.length} joined`, true);
   const panel = $('panel');
-  panel.replaceChildren(el('h2', null, 'Players'));
+  panel.replaceChildren();
+  if (HOST) {
+    panel.appendChild(el('h2', null, 'Join on your phone'));
+    panel.appendChild(el('div', 'joinurl', `${location.host}/live/${code}`));
+  }
+  panel.appendChild(el('h2', null, 'Players'));
   const names = el('div', 'names');
   for (const p of snap.players) names.appendChild(el('span', null, p.name));
   if (!snap.players.length) names.appendChild(el('span', null, 'nobody yet'));
   panel.appendChild(names);
   panel.hidden = false;
   $('action').hidden = true;
+  $('answer').hidden = true;
 }
 
 function renderOpen() {
+  const loc = isLoc();
   const me = snap.players.find((p) => isMe(p.id));
   const answered = !!(me && me.answered);
-  const loc = isLoc();
-  let hint = HINTS[snap.round.type];
-  if (HOST) hint = `${snap.players.filter((p) => p.answered).length} of ${snap.players.length} answered`;
-  else if (loc && marker && !sent) hint = 'drag the pin to adjust, then confirm';
-  else if (answered && (sent || (loc ? !marker : pick == null))) hint = loc ? 'answer sent · tap again to change' : 'answer sent · you can change it until the reveal';
-  setBanner(snap.round.question, hint, `${snap.round.ord + 1}/${snap.roundCount}`);
+  const done = snap.players.filter((p) => p.answered).length;
+  let hint = w().hint[snap.round.type], soft = false;
+  if (HOST) { hint = `${done} of ${snap.players.length} answered`; soft = true; }
+  else if (loc && marker && !sent) { hint = 'Drag the pin to fine-tune'; soft = true; }
+  else if (answered && (sent || (loc ? !marker : pick == null))) {
+    hint = loc ? 'Answer sent · tap again to change' : 'Answer sent · change it until the reveal'; soft = true;
+  }
+  hud($('rno'), $('bar'), snap.round.ord, snap.roundCount);
+  setQ(snap.round.question, hint, soft);
   $('panel').hidden = true;
   $('answer').hidden = loc || !$('answer').children.length;
-  $('action').textContent = loc ? 'Confirm guess' : 'Submit answer';
+  $('action').textContent = w().lock;
   $('action').hidden = HOST || sent || (loc ? !marker : pick == null);
+}
+
+// My own result on top of the reveal panel: verdict, count-up points, confetti once.
+function myResult(panel, guesses, roundChanged) {
+  if (HOST) return;
+  const mine = guesses.find((g) => isMe(g.playerId));
+  const pts = mine ? mine.points : 0;
+  panel.appendChild(verdictChip(pts));
+  const n = panel.appendChild(el('div', 'pts'));
+  if (roundChanged) { countUp(n, pts); if (pts >= 100) confetti(); } else n.textContent = `+${pts}`;
+}
+function answerLabel(panel, label) {
+  if (label) panel.appendChild(label.length <= 26 ? flaps(label, true) : el('div', 'ans', label));
+}
+function extras(panel, truth) {
+  if (truth.photo) { const img = el('img'); img.src = photoUrl(truth.photo); img.alt = truth.answer || 'photo'; panel.appendChild(img); }
+  if (truth.story) panel.appendChild(el('div', 'story', truth.story));
 }
 
 function renderReveal(roundChanged) {
   const { truth, guesses } = snap.reveal;
-  setBanner(snap.round.question, '', `${snap.round.ord + 1}/${snap.roundCount}`);
+  if (!roundChanged && !$('panel').hidden) return; // a rebroadcast (someone joined): keep pins, panel and its animations
+  hud($('rno'), $('bar'), snap.round.ord, snap.roundCount);
+  setQ(snap.round.question);
   $('action').hidden = true;
   $('answer').hidden = true;
   if (marker) { marker.remove(); marker = null; }
   for (const p of pins) p.remove();
   pins = [];
-  if (!isLoc()) return renderAnswerReveal(truth, guesses);
+  if (!isLoc()) return renderAnswerReveal(truth, guesses, roundChanged);
   pins = guesses.map((g) => {
     const node = el('div', 'pin' + (isMe(g.playerId) ? ' mine' : ''));
     node.appendChild(el('span', 'dot'));
@@ -316,82 +213,74 @@ function renderReveal(roundChanged) {
     if (!roundChanged) return; // late joiners / rebroadcasts must not yank the camera
     const b = extendBy(new maplibregl.LngLatBounds([truth.lng, truth.lat], [truth.lng, truth.lat]), tf.geometry);
     for (const g of guesses) b.extend([g.lng, g.lat]);
-    // wide screens: the result panel sits on the right; phones: it sits across the top
-    const padding = innerWidth < 700 ? { top: 460, bottom: 50, left: 50, right: 50 } : { top: 110, bottom: 80, left: 60, right: 360 };
+    // wide screens: the result panel sits on the right; phones: across the bottom
+    const padding = innerWidth < 700 ? { top: 190, bottom: innerHeight * 0.5, left: 40, right: 40 } : { top: 170, bottom: 110, left: HOST ? 370 : 60, right: 380 }; // host: clear of the host bar too
     map.fitBounds(b, { padding, maxZoom: 9, duration: RM ? 0 : 1200 });
   });
 
   const panel = $('panel');
-  panel.replaceChildren(el('h2', null, `Round ${snap.round.ord + 1}`));
-  const label = truth.answer || [truth.city, truth.country].filter(Boolean).join(' · ');
-  if (label) panel.appendChild(el('div', 'ans', `📍 ${label}`));
+  panel.replaceChildren();
+  myResult(panel, guesses, roundChanged);
+  answerLabel(panel, truth.answer || [truth.city, truth.country].filter(Boolean).join(', '));
   const table = el('table');
   guesses.forEach((g, i) => {
     const tr = el('tr', isMe(g.playerId) ? 'me' : '');
-    tr.appendChild(el('td', null, `${i + 1}.`));
-    tr.appendChild(el('td', null, g.name));
-    tr.appendChild(el('td', 'n', `${g.km} km`));
-    tr.appendChild(el('td', 'pts', `+${g.points}`));
-    table.appendChild(tr);
-  });
-  const missed = snap.players.filter((p) => !guesses.some((g) => g.playerId === p.id));
-  for (const p of missed) {
-    const tr = el('tr', isMe(p.id) ? 'me' : '');
-    tr.appendChild(el('td', null, '–')); tr.appendChild(el('td', null, p.name));
-    tr.appendChild(el('td', 'n', 'no pin')); tr.appendChild(el('td', 'pts', '+0'));
-    table.appendChild(tr);
-  }
-  panel.appendChild(table);
-  if (truth.photo) { const img = el('img'); img.src = photoUrl(truth.photo); img.alt = label || 'photo'; panel.appendChild(img); }
-  if (truth.story) panel.appendChild(el('div', 'story', truth.story));
-  panel.hidden = false;
-}
-
-// Reveal panel for typed / choice / number rounds: the right answer, everyone's answer, no globe changes.
-function renderAnswerReveal(truth, guesses) {
-  const panel = $('panel'), r = snap.round;
-  panel.replaceChildren(el('h2', null, `Round ${r.ord + 1}`));
-  if (r.type === 'choice') {
-    r.options.forEach((o, i) => {
-      const row = el('div', 'o' + (i === truth.correct ? ' right' : ''));
-      row.appendChild(el('span', null, `${i === truth.correct ? '✓' : '·'} ${o}`));
-      row.appendChild(el('span', 'c', String(guesses.filter((g) => g.answer === i).length)));
-      panel.appendChild(row);
-    });
-    if (truth.answer !== r.options[truth.correct]) panel.appendChild(el('div', 'ans', truth.answer));
-  } else panel.appendChild(el('div', 'ans', `✔ ${truth.answer}`));
-  const table = el('table');
-  guesses.forEach((g, i) => {
-    const tr = el('tr', isMe(g.playerId) ? 'me' : '');
-    tr.appendChild(el('td', null, `${i + 1}.`));
-    tr.appendChild(el('td', null, g.name));
-    tr.appendChild(el('td', 'n ' + (g.correct ? 'ok' : 'no'), `${answerText(g.answer)} ${g.correct ? '✓' : r.type === 'number' ? '' : '✗'}`.trim()));
-    tr.appendChild(el('td', 'pts', `+${g.points}`));
+    tr.append(el('td', null, `${i + 1}.`), el('td', null, g.name), el('td', 'n', `${g.km} km`), el('td', 'pts-c', `+${g.points}`));
     table.appendChild(tr);
   });
   for (const p of snap.players.filter((p) => !guesses.some((g) => g.playerId === p.id))) {
     const tr = el('tr', isMe(p.id) ? 'me' : '');
-    tr.appendChild(el('td', null, '–')); tr.appendChild(el('td', null, p.name));
-    tr.appendChild(el('td', 'n', 'no answer')); tr.appendChild(el('td', 'pts', '+0'));
+    tr.append(el('td', null, '–'), el('td', null, p.name), el('td', 'n', 'no pin'), el('td', 'pts-c', '+0'));
     table.appendChild(tr);
   }
   panel.appendChild(table);
-  if (truth.photo) { const img = el('img'); img.src = photoUrl(truth.photo); img.alt = truth.answer || 'photo'; panel.appendChild(img); }
-  if (truth.story) panel.appendChild(el('div', 'story', truth.story));
+  extras(panel, truth);
   panel.hidden = false;
+  panel.scrollTop = 0;
+}
+
+// Reveal for typed / choice / number rounds: the right answer, everyone's answer, no globe changes.
+function renderAnswerReveal(truth, guesses, roundChanged) {
+  const panel = $('panel'), r = snap.round;
+  panel.replaceChildren();
+  myResult(panel, guesses, roundChanged);
+  if (r.type === 'choice') {
+    const list = el('div', 'opts-r');
+    r.options.forEach((o, i) => {
+      const row = el('div', 'o' + (i === truth.correct ? ' right' : ''));
+      row.append(el('span', null, `${i === truth.correct ? '✓' : '·'}  ${o}`), el('span', 'c', String(guesses.filter((g) => g.answer === i).length)));
+      list.appendChild(row);
+    });
+    panel.appendChild(list);
+    if (truth.answer !== r.options[truth.correct]) answerLabel(panel, truth.answer);
+  } else answerLabel(panel, truth.answer);
+  const table = el('table');
+  guesses.forEach((g, i) => {
+    const tr = el('tr', isMe(g.playerId) ? 'me' : '');
+    tr.append(el('td', null, `${i + 1}.`), el('td', null, g.name),
+      el('td', 'n ' + (g.correct ? 'ok' : ''), `${answerText(g.answer)} ${g.correct ? '✓' : r.type === 'number' ? '' : '✗'}`.trim()),
+      el('td', 'pts-c', `+${g.points}`));
+    table.appendChild(tr);
+  });
+  for (const p of snap.players.filter((p) => !guesses.some((g) => g.playerId === p.id))) {
+    const tr = el('tr', isMe(p.id) ? 'me' : '');
+    tr.append(el('td', null, '–'), el('td', null, p.name), el('td', 'n', 'no answer'), el('td', 'pts-c', '+0'));
+    table.appendChild(tr);
+  }
+  panel.appendChild(table);
+  extras(panel, truth);
+  panel.hidden = false;
+  panel.scrollTop = 0;
 }
 
 function renderFinished() {
-  setBanner('Thanks for playing!', '');
+  setQ('Thanks for playing!');
   $('panel').hidden = true;
   $('action').hidden = true;
+  $('answer').hidden = true;
   $('endtitle').textContent = snap.title;
-  const rows = snap.standings.map((s, i) => {
-    const tr = el('tr', isMe(s.playerId) ? 'me' : '');
-    tr.appendChild(el('td', null, `${i + 1}.`)); tr.appendChild(el('td', null, s.name)); tr.appendChild(el('td', 'pts', `${s.total} pts`));
-    return tr;
-  });
-  $('board').replaceChildren(...rows);
+  $('endsub').textContent = w().bye;
+  finalBoard($('board'), snap.standings.map((s) => ({ name: s.name, total: s.total, me: isMe(s.playerId) })));
   $('endov').hidden = false;
 }
 
@@ -400,8 +289,9 @@ function renderHost() {
   $('host').hidden = false;
   $('joinlink').value = `${location.origin}/live/${code}`;
   const done = snap.players.filter((p) => p.answered).length;
-  $('count').textContent = snap.state === 'open' ? `${done} of ${snap.players.length} answered`
-    : `${snap.players.length} player${snap.players.length === 1 ? '' : 's'}`;
+  $('count').replaceChildren();
+  if (snap.state === 'open') $('count').append(el('b', null, String(done)), ` of ${snap.players.length} answered`);
+  else $('count').textContent = `${snap.players.length} player${snap.players.length === 1 ? '' : 's'}`;
   $('plist').replaceChildren(...snap.players.map((p) => el('span', p.answered && snap.state === 'open' ? 'ok' : '', p.name)));
   const labels = { lobby: 'Start round 1', open: 'Reveal' };
   let label = labels[snap.state];
@@ -412,15 +302,21 @@ function renderHost() {
 }
 
 function render() {
-  document.title = `MapTap · ${snap.title}`;
+  if (!themed) { applyTheme(snap.theme); themed = true; }
+  document.title = snap.title;
   $('gtitle').textContent = snap.title;
+  const total = myTotal();
+  $('tot').textContent = HOST || total == null ? '' : `${total} PTS`;
   const roundChanged = snap.state !== shown.state || (snap.round && snap.round.ord !== shown.ord);
   if (roundChanged && (snap.state === 'open' || snap.state === 'lobby' || snap.state === 'finished')) { clearGlobe(); sent = false; }
-  if (roundChanged && snap.state === 'open') {
-    buildAnswer();
-    if (snap.round.ord > 0) map.easeTo({ center: [10, 25], zoom: 1.6, duration: RM ? 0 : 1200 }); // last reveal's zoom would be a hint
+  if (roundChanged) {
+    const inRound = snap.state === 'open' || snap.state === 'revealed';
+    stage(map, !(inRound && isLoc())); // the globe is sharp only while a location round is played or revealed
+    if (snap.state === 'open') {
+      buildAnswer();
+      if (snap.round.ord > 0) map.easeTo({ center: [10, 25], zoom: 1.6, duration: RM ? 0 : 1200 }); // last reveal's zoom would be a hint
+    }
   }
-  if (snap.state !== 'open') $('answer').hidden = true;
   shown = { state: snap.state, ord: snap.round ? snap.round.ord : null };
   $('endov').hidden = snap.state !== 'finished';
   ({ lobby: renderLobby, open: renderOpen, revealed: renderReveal, finished: renderFinished })[snap.state](roundChanged);
@@ -430,10 +326,9 @@ function render() {
 // ---- guessing ----
 function place(lat, lng) {
   if (HOST || !snap || snap.state !== 'open' || !isLoc()) return;
-  if (!marker) {
-    marker = new maplibregl.Marker({ draggable: true, color: '#22d3ee' }).setLngLat([lng, lat]).addTo(map);
-    marker.on('dragend', () => { if (snap && snap.state === 'open') { sent = false; renderOpen(); } });
-  } else marker.setLngLat([lng, lat]);
+  if (marker) marker.remove(); // a fresh marker replays the drop
+  marker = new maplibregl.Marker({ element: pinElement(), draggable: true, anchor: 'bottom' }).setLngLat([lng, lat]).addTo(map);
+  marker.on('dragend', () => { if (snap && snap.state === 'open') { sent = false; renderOpen(); } });
   sent = false;
   renderOpen();
 }
@@ -446,10 +341,10 @@ async function confirmGuess() {
   const ord = snap.round.ord;
   try {
     const resp = await postJson('/guess', { token, ord, ...g });
-    if (resp.status === 409) { $('hint').textContent = 'round closed — waiting for the host'; return; }
+    if (resp.status === 409) { setQ(snap.round.question, 'Round closed — waiting for the host', true); return; }
     if (!resp.ok) throw new Error(resp.status);
     if (snap && snap.state === 'open' && snap.round && snap.round.ord === ord) { sent = true; renderOpen(); }
-  } catch { $('action').hidden = false; $('hint').textContent = 'network hiccup — try confirm again'; }
+  } catch { $('action').hidden = false; setQ(snap.round.question, 'Network hiccup — try again', true); }
 }
 $('action').addEventListener('click', confirmGuess);
 
@@ -473,7 +368,7 @@ $('copy').addEventListener('click', () => {
 function connect() {
   const es = new EventSource(`/live/api/${code}/events?token=${encodeURIComponent(token || '')}`);
   es.addEventListener('state', (e) => { snap = JSON.parse(e.data); render(); });
-  es.onerror = () => { $('hint').textContent = 'reconnecting…'; };
+  es.onerror = () => { $('hint').textContent = 'Reconnecting…'; };
 }
 $('join').addEventListener('click', async () => {
   const name = $('pname').value.trim();
@@ -493,18 +388,21 @@ $('pname').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('join')
 window.liveState = { place, confirm: confirmGuess, render: (s) => { snap = s; render(); }, // debug/driver handle
   answer: (v) => { pick = v; sent = false; renderOpen(); } };
 
+stage(map, true);
 (async () => {
   let first;
   try {
     const resp = await api(`/state?token=${encodeURIComponent(token || '')}`);
     if (!resp.ok) throw new Error(resp.status);
     first = await resp.json();
-  } catch { setBanner('Could not load this session.', 'check the link'); return; }
+  } catch { setQ('Could not load this session.', 'Check the link', true); return; }
+  applyTheme(first.theme); themed = true;
   $('gtitle').textContent = first.title;
   $('wtitle').textContent = first.title;
+  $('join').textContent = w().join;
   if (!HOST && !first.you) {
     token = null;
-    setBanner('Join the game', '');
+    setQ('Join the game');
     $('nameov').hidden = false;
     $('pname').focus();
     return;

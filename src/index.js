@@ -22,6 +22,8 @@ function createApp({ dbPath = config.DB_PATH, uploadsDir = config.UPLOADS_DIR } 
   // Photos are public. Names are 16 random hex chars that only ever appear on a
   // reveal, so a photo is as discoverable as the game link itself — no more.
   app.use('/uploads', express.static(uploadsDir, { maxAge: '365d', immutable: true }));
+  // The play pages' shared stylesheet (both themes) and UI helpers. No hashing, so no long cache.
+  app.use('/assets', express.static(path.join(__dirname, '..', 'views', 'assets')));
 
   // Random server-side names; client names never used. Before the router so
   // /api/:slug can't shadow it.

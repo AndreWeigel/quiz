@@ -50,6 +50,16 @@ Admin: `GET/POST /api/admin/games`, `GET/PUT/DELETE /api/admin/games/:id`,
 `GET/POST /api/admin/games/:id/sessions`, `POST /api/admin/sessions/:code/next|end`,
 `POST /api/upload` (raw `image/*` — jpeg, png, webp or gif — ≤ 8 MB).
 
+## Themes
+
+Each quiz has a `theme`, picked in the builder: **gameshow** (default — bold
+A–D answer tiles, confetti, a podium) or **railway** (departure-board lettering,
+platform signs, ON TIME / DELAYED / CANCELLED, an arrivals board). Both play
+pages share `views/assets/quiz.css` (both themes) and `views/assets/ui.js`
+(flap tiles, answer widgets, reveal flourishes, final board), served at
+`/assets/`. On typed / choice / number rounds the globe stays as a dimmed,
+drifting backdrop; it sharpens on location rounds.
+
 ## Rounds
 
 Every round has a `type`; the type's own logic (validation, what players see,

@@ -31,7 +31,7 @@ function baseSnapshot(db, session) {
   const standings = db.standings(session.id, revealedOrds(session, rounds))
     .map((s) => ({ playerId: s.player_id, name: s.name, total: s.total }));
   return {
-    code: session.code, title: game.title, state: session.state, roundCount: rounds.length,
+    code: session.code, title: game.title, theme: game.theme, state: session.state, roundCount: rounds.length,
     round: round ? publicRound(round) : null,
     players, reveal, standings, you: null,
   };

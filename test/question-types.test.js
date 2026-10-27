@@ -207,3 +207,18 @@ test('openGameDb rebuilds a 2026-10-23 file: rows kept, rounds become location, 
     openGameDb(file).raw.close(); // second open is a no-op
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('theme: defaults to gameshow, PUT switches it, public view and live snapshot carry it', async () => {
+  await withServer(async (base) => {
+    const { g, saved } = await mixedGame(base);
+    assert.equal(saved.game.theme, 'gameshow');
+    const put = (theme) => fetch(`${base}/api/admin/games/${g.id}`, { method: 'PUT', headers: { ...auth, ...json },
+      body: JSON.stringify({ title: 'Rail', rounds: MIXED, theme }) });
+    assert.equal((await put('disco')).status, 400);
+    assert.equal((await (await put('railway')).json()).game.theme, 'railway');
+    assert.equal((await (await put(undefined)).json()).game.theme, 'railway'); // omitted = unchanged
+    assert.equal((await (await fetch(`${base}/api/${g.slug}`)).json()).theme, 'railway');
+    const { code } = await (await post(`${base}/api/admin/games/${g.id}/sessions`, undefined, auth)).json();
+    assert.equal((await (await fetch(`${base}/live/api/${code}/state`)).json()).theme, 'railway');
+  });
+});

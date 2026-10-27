@@ -3,15 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MapTap · Game builder</title>
+<title>Quiz builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <style>
   :root {
     color-scheme: dark;
     --bg: #070b1c; --bg-2: #0a1030; --panel: rgba(16,22,52,.9); --border: rgba(130,155,255,.16);
-    --text: #eaf0ff; --muted: #98a4d4; --cyan: #22d3ee; --red: #f0616a;
-    --body: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --text: #eaf0ff; --muted: #a3aed8; --cyan: #22d3ee; --red: #f0616a; --amber: #ffb020; --ink: #1a1205;
+    --display: "Space Grotesk", Inter, sans-serif;
+    --body: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
   }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; padding: 40px 20px 80px; color: var(--text);
@@ -19,28 +22,36 @@
   .wrap { max-width: 760px; margin: 0 auto; }
   a.back { color: var(--muted); text-decoration: none; font-family: var(--mono); font-size: .95rem; }
   a.back:hover { color: var(--cyan); }
-  h1 { font-family: var(--mono); font-size: 1.15rem; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); margin: 10px 0 4px; }
+  h1 { font: 700 1.8rem/1.1 var(--display); letter-spacing: -.01em; margin: 10px 0 6px; }
   p.hint { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
   .bar { display: flex; align-items: center; gap: 12px; margin: 0 0 20px; position: sticky; top: 0;
     background: linear-gradient(var(--bg-2), rgba(10,16,48,.6)); padding: 10px 0; z-index: 5; }
   button { font-family: var(--mono); cursor: pointer; border-radius: 999px; border: 1px solid var(--border);
     background: rgba(10,14,34,.72); color: var(--text); padding: 8px 16px; font-size: .9rem; transition: background .15s, border-color .15s; }
   button:hover { border-color: rgba(34,211,238,.4); }
-  button.primary { background: rgba(34,211,238,.15); border-color: rgba(34,211,238,.45); color: var(--cyan); }
+  button.primary { background: var(--amber); border-color: var(--amber); color: var(--ink); font-weight: 700; }
   button.primary:disabled { opacity: .45; cursor: default; }
   button.sm { padding: 4px 10px; font-size: .8rem; min-width: 36px; min-height: 36px; }
   #status { font-family: var(--mono); font-size: .85rem; color: var(--muted); margin-left: auto; }
 
   .game { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--panel);
     border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 10px; }
-  .game .t { font-weight: 700; flex: 1; min-width: 140px; }
+  .game .t { font: 700 1.05rem var(--display); flex: 1; min-width: 140px; }
   .game .meta { font: .75rem var(--mono); color: var(--muted); }
   .game .sessions { flex-basis: 100%; font: .75rem var(--mono); color: var(--muted); }
   .game .sessions a { color: var(--cyan); text-decoration: none; }
   .game .sessions .fin { opacity: .6; }
   .empty { color: var(--muted); font-style: italic; }
 
-  .title { font-size: 1.2rem; font-weight: 700; margin: 0 0 4px; cursor: text; }
+  .title { font: 700 1.5rem var(--display); margin: 0 0 4px; cursor: text; }
+  .themepick { display: inline-flex; align-items: center; gap: 8px; font: .8rem var(--mono); color: var(--muted); margin: 0 0 14px; }
+  .themepick select, select.type { appearance: none; background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 6px 26px 6px 10px; font: 600 .8rem var(--mono);
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: right 12px center, right 7px center; background-size: 5px 5px; background-repeat: no-repeat; }
+  .geo svg, button.sm svg { vertical-align: middle; }
+  .geo { display: inline-flex; }
+  .geo.ok { color: #4ade80; } .geo.no { color: var(--amber); }
   .title:hover { color: var(--cyan); }
   .share { font: .8rem var(--mono); color: var(--muted); margin: 0 0 16px; overflow-wrap: anywhere; }
   .round { background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
@@ -164,7 +175,13 @@ function countPositions(g) { let n = 0; const walk = (c) => { if (!Array.isArray
 const setStatus = (t) => { $('status').textContent = t; };
 
 // Question types (server: src/types.js). Location rounds keep today's fields.
-const TYPE_LABELS = { location: '📍 Location', text: '✎ Typed', choice: '☰ Choice', number: '# Number' };
+const TYPE_LABELS = { location: 'Location', text: 'Typed answer', choice: 'Multiple choice', number: 'Number' };
+const THEMES = { gameshow: 'Game show', railway: 'Railway' };
+const ICON = {
+  map: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>',
+  ok: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>',
+  warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2zM12 10v5M12 18h.01"/></svg>',
+};
 const Q_HINT = { location: 'Question — e.g. Where was Daniel born?', text: 'Question — e.g. Which tunnel is the longest in the world?',
   choice: 'Question — e.g. Which station has the most platforms?', number: 'Question — e.g. How long is the Gotthard Base Tunnel?' };
 const NEW_SPEC = { text: () => ({ accept: [] }), choice: () => ({ options: ['', ''], correct: 0 }), number: () => ({}) };
@@ -214,7 +231,7 @@ function renderList() {
   $('main').innerHTML = games.length ? games.map((g) => `
     <div class="game">
       <span class="t">${esc(g.title)}</span>
-      <span class="meta">${g.rounds} rounds · ${g.plays} plays · ${g.created_at.slice(0, 10)}</span>
+      <span class="meta">${g.rounds} rounds · ${g.plays} plays · ${esc(THEMES[g.theme] || '')} · ${g.created_at.slice(0, 10)}</span>
       <button class="sm" data-copy="${esc(g.slug)}">Copy link</button>
       <button class="sm" data-live="${g.id}" ${g.rounds ? '' : 'disabled title="Add rounds first"'}>Go live</button>
       <button class="sm" data-edit="${g.id}">Edit</button>
@@ -231,6 +248,8 @@ function renderEditor() {
   const { game, rounds } = editing;
   $('main').innerHTML = `
     <div class="title" id="rename" title="Click to rename">${esc(game.title)}</div>
+    <label class="themepick">Theme <select id="theme" aria-label="Theme">${Object.entries(THEMES).map(([v, l]) =>
+      `<option value="${v}" ${(game.theme || 'gameshow') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
     <p class="share">Share link: ${esc(location.origin)}/${esc(game.slug)}
       <button class="sm" data-copy="${esc(game.slug)}">Copy</button></p>
     ${rounds.map((r, i) => `
@@ -248,8 +267,8 @@ function renderEditor() {
         <input type="text" class="city" data-city="${i}" placeholder="City — type, then pick from the list"
           value="${esc([r.city, r.country].filter(Boolean).join(', '))}" ${r.geometry ? 'disabled' : ''}>
         <input type="text" class="coords" data-coords="${i}" placeholder="or lat, lng" value="${esc(fmtCoords(r))}" ${r.geometry ? 'disabled title="Anchor set from the shape"' : ''}>
-        <button class="sm" data-mappick="${i}" title="${r.geometry ? 'Preview the shape on a map' : 'Pick the spot on a map'}" aria-label="Open the map">🗺</button>
-        <span class="geo">${Number.isFinite(r.lat) ? '📍' : '⚠'}</span>
+        <button class="sm" data-mappick="${i}" title="${r.geometry ? 'Preview the shape on a map' : 'Pick the spot on a map'}" aria-label="Open the map">${ICON.map}</button>
+        ${Number.isFinite(r.lat) ? `<span class="geo ok" title="Location set">${ICON.ok}</span>` : `<span class="geo no" title="No location yet">${ICON.warn}</span>`}
       </div>
       <details class="shape" ${r.geometry ? 'open' : ''}>
         <summary>Shape (line or area) — optional${r.geometry ? ` · ${esc(shapeLabel(r))}` : ''}</summary>
@@ -428,6 +447,7 @@ main.addEventListener('click', async (e) => {
 main.addEventListener('change', async (e) => {
   if (!editing) return;
   const val = (a) => { const el = e.target.closest(`[data-${a}]`); return el ? [+el.dataset[a], el] : [null, null]; };
+  if (e.target.id === 'theme') { editing.game.theme = e.target.value; editing.dirty = true; return render(); }
   let [i, el] = val('type');
   if (el) {
     const r = editing.rounds[i];
@@ -573,7 +593,7 @@ $('save').addEventListener('click', async () => {
   try {
     const resp = await fetch(`/api/admin/games/${editing.game.id}`, {
       method: 'PUT', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: editing.game.title,
+      body: JSON.stringify({ title: editing.game.title, theme: editing.game.theme,
         rounds: editing.rounds.map(({ shapeText, shapeLabel, shapeErr, ...r }) => r) }),
     });
     if (resp.status === 400) {

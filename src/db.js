@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS games (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   slug       TEXT NOT NULL UNIQUE,
   title      TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  theme      TEXT NOT NULL DEFAULT 'gameshow'
 );
 CREATE TABLE IF NOT EXISTS rounds (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,6 +91,9 @@ function openGameDb(dbPath) {
   db.exec(SCHEMA);
   // Files created before 2026-09-01 lack the trivia columns; CREATE IF NOT
   // EXISTS won't touch them, so bring them up with ALTERs.
+  if (!db.prepare('PRAGMA table_info(games)').all().some((c) => c.name === 'theme')) {
+    db.exec("ALTER TABLE games ADD COLUMN theme TEXT NOT NULL DEFAULT 'gameshow'");
+  }
   const cols = db.prepare('PRAGMA table_info(rounds)').all().map((c) => c.name);
   if (!cols.includes('answer')) db.exec('ALTER TABLE rounds ADD COLUMN answer TEXT');
   if (!cols.includes('radius')) db.exec('ALTER TABLE rounds ADD COLUMN radius REAL');
@@ -127,8 +131,8 @@ function openGameDb(dbPath) {
     for (const g of guesses) insertGuess.run({ play_id: lastInsertRowid, round_ord: g.round_ord, ...guessRow(g) });
     return { id: lastInsertRowid };
   });
-  const replaceRounds = db.transaction((id, title, rounds) => {
-    db.prepare('UPDATE games SET title = ? WHERE id = ?').run(title, id);
+  const replaceRounds = db.transaction((id, title, rounds, theme) => {
+    db.prepare('UPDATE games SET title = ?, theme = COALESCE(?, theme) WHERE id = ?').run(title, theme ?? null, id);
     db.prepare('DELETE FROM rounds WHERE game_id = ?').run(id);
     rounds.forEach((r, ord) => insertRound.run({
       game_id: id, ord, question: r.question, type: r.type || 'location', spec: r.spec ? JSON.stringify(r.spec) : null,
@@ -196,8 +200,8 @@ function openGameDb(dbPath) {
       return { game, rounds };
     },
 
-    saveGame(id, title, rounds) {
-      replaceRounds(id, title, rounds);
+    saveGame(id, title, rounds, theme) {
+      replaceRounds(id, title, rounds, theme);
       return this.getGame(id);
     },
 
