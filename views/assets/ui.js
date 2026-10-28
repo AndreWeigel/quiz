@@ -147,19 +147,19 @@ export function stage(map, on) {
   document.body.classList.toggle('stage', on);
   document.body.classList.toggle('loc', !on);
   cancelAnimationFrame(spin);
-  spin = 0;
   if (!on || RM) return;
   let last = performance.now();
   const tick = (t) => {
-    if (t - last > 80) { // ~12 redraws a second: smooth enough under the blur, a fifth of the GPU work on phones
+    // Never during a camera move (the ease out of the last reveal, a drag): jumpTo would cancel it mid-zoom.
+    if (map.isMoving()) last = t;
+    else if (t - last > 80) { // ~12 redraws a second: smooth enough under the blur, a fifth of the GPU work on phones
       const c = map.getCenter();
       map.jumpTo({ center: [c.lng + (t - last) * 0.004, c.lat] }); // ~4°/s
       last = t;
     }
     spin = requestAnimationFrame(tick);
   };
-  map.once('moveend', () => { if (document.body.classList.contains('stage') && !spin) spin = requestAnimationFrame(tick); });
-  if (!map.isMoving()) map.fire('moveend');
+  spin = requestAnimationFrame(tick);
 }
 
 // Final board: podium + list (game show) or an arrivals board (railway).
