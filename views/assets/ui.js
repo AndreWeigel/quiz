@@ -12,10 +12,10 @@ export const el = (tag, cls, text) => {
 
 const WORDS = {
   gameshow: { lock: 'Lock in', next: 'Next round', results: 'See results', join: 'Join', play: 'Play',
-    perfect: 'Perfect', close: 'Close', wrong: 'Not quite', final: 'Final', bye: 'Final scoreboard',
+    perfect: 'Perfect', close: 'Close', wrong: 'Not quite', final: 'Final', bye: 'Final scoreboard', allin: 'Everyone’s in!',
     hint: { location: 'Tap the map', text: 'Type it', choice: 'Pick one', number: 'Best guess' } },
   railway: { lock: 'Validate ticket', next: 'Next departure', results: 'Arrivals', join: 'Board', play: 'Board',
-    perfect: 'On time', close: 'Delayed', wrong: 'Cancelled', final: 'Arrivals',
+    perfect: 'On time', close: 'Delayed', wrong: 'Cancelled', final: 'Arrivals', allin: 'All aboard',
     bye: 'This train terminates here. Thank you for travelling with us.',
     hint: { location: 'Tap the map', text: 'Type it', choice: 'Pick a platform', number: 'Best guess' } },
 };

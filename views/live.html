@@ -108,6 +108,7 @@ function setQ(question, hint = '', soft = false) {
   $('question').textContent = question;
   $('hint').textContent = hint;
   $('hint').classList.toggle('soft', soft);
+  $('hint').classList.remove('all');
 }
 const isMe = (playerId) => !!(snap.you && snap.you.playerId === playerId);
 const photoUrl = (file) => `/live/api/${code}/photo/${file}`;
@@ -156,14 +157,16 @@ function renderOpen() {
   const me = snap.players.find((p) => isMe(p.id));
   const answered = !!(me && me.answered);
   const done = snap.players.filter((p) => p.answered).length;
+  const all = done > 0 && done === snap.players.length;
   let hint = w().hint[snap.round.type], soft = false;
-  if (HOST) { hint = `${done} of ${snap.players.length} answered`; soft = true; }
+  if (HOST) { hint = all ? w().allin : `${done} of ${snap.players.length} answered`; soft = true; }
   else if (loc && marker && !sent) { hint = 'Drag the pin to fine-tune'; soft = true; }
   else if (answered && (sent || (loc ? !marker : pick == null))) {
-    hint = loc ? 'Answer sent · tap again to change' : 'Answer sent · change it until the reveal'; soft = true;
+    hint = all ? `${w().allin} · reveal coming up` : loc ? 'Answer sent · tap again to change' : 'Answer sent · change it until the reveal'; soft = true;
   }
   hud($('rno'), $('bar'), snap.round.ord, snap.roundCount);
   setQ(snap.round.question, hint, soft);
+  $('hint').classList.toggle('all', all && (HOST || answered));
   $('panel').hidden = true;
   $('answer').hidden = loc || !$('answer').children.length;
   $('action').textContent = w().lock;
@@ -289,6 +292,7 @@ function renderHost() {
   $('host').hidden = false;
   $('joinlink').value = `${location.origin}/live/${code}`;
   const done = snap.players.filter((p) => p.answered).length;
+  $('host').classList.toggle('all', snap.state === 'open' && done > 0 && done === snap.players.length); // cue the host to reveal
   $('count').replaceChildren();
   if (snap.state === 'open') $('count').append(el('b', null, String(done)), ` of ${snap.players.length} answered`);
   else $('count').textContent = `${snap.players.length} player${snap.players.length === 1 ? '' : 's'}`;
