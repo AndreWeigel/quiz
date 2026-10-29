@@ -1,4 +1,4 @@
-// UI pieces both play pages share (play.html, live.html): theme words, flap
+// UI pieces both play pages share (play.html, live.html): the words, flap
 // tiles, answer widgets, the reveal flourishes and the final board. Untrusted
 // text (questions, options, names) only ever goes in via textContent.
 export const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -10,20 +10,14 @@ export const el = (tag, cls, text) => {
   return e;
 };
 
-const WORDS = {
-  gameshow: { lock: 'Lock in', next: 'Next round', results: 'See results', join: 'Join', play: 'Play',
-    perfect: 'Perfect', close: 'Close', wrong: 'Not quite', final: 'Final', bye: 'Final scoreboard', allin: 'Everyone’s in!',
-    hint: { location: 'Tap the map', text: 'Type it', choice: 'Pick one', number: 'Best guess' } },
-  railway: { lock: 'Validate ticket', next: 'Next departure', results: 'Arrivals', join: 'Board', play: 'Board',
-    perfect: 'On time', close: 'Delayed', wrong: 'Cancelled', final: 'Arrivals', allin: 'All aboard',
-    bye: 'This train terminates here. Thank you for travelling with us.',
-    hint: { location: 'Tap the map', text: 'Type it', choice: 'Pick a platform', number: 'Best guess' } },
-};
-let words = WORDS.gameshow, theme = 'gameshow';
-export const w = () => words;
+// Same words in every theme: a theme changes the look, not the language.
+const WORDS = { lock: 'Lock in', next: 'Next round', results: 'See results', join: 'Join', play: 'Play',
+  perfect: 'Perfect', close: 'Close', wrong: 'Not quite', final: 'Final', bye: 'Final scoreboard', allin: 'Everyone’s in!',
+  hint: { location: 'Tap the map', text: 'Type it', choice: 'Pick one', number: 'Best guess' } };
+let theme = 'gameshow';
+export const w = () => WORDS;
 export function applyTheme(t) {
-  theme = Object.hasOwn(WORDS, t) ? t : 'gameshow';
-  words = WORDS[theme];
+  theme = ['gameshow', 'railway'].includes(t) ? t : 'gameshow';
   document.documentElement.dataset.theme = theme;
 }
 
@@ -31,7 +25,7 @@ export function applyTheme(t) {
 export const verdictOf = (points) => (points >= 100 ? 'perfect' : points >= 40 ? 'close' : 'wrong');
 export function verdictChip(points) {
   const v = verdictOf(points);
-  return el('span', `verdict ${v}`, words[v]);
+  return el('span', `verdict ${v}`, WORDS[v]);
 }
 
 // Split-flap tiles; `flip` animates them in one after another.
@@ -182,10 +176,6 @@ export function finalBoard(box, rows) {
     const i = from + j, tr = el('tr', r.me ? 'me' : '');
     tr.appendChild(el('td', 'r', `${i + 1}`));
     tr.appendChild(el('td', null, r.name));
-    if (theme === 'railway') {
-      const st = i < 3 ? ['ontime', 'On time'] : i < 6 ? ['delayed', 'Delayed'] : ['cancelled', 'Cancelled'];
-      tr.appendChild(el('td', `st ${st[0]}`, st[1].toUpperCase()));
-    }
     tr.appendChild(el('td', 's', `${r.total}`));
     table.appendChild(tr);
   });

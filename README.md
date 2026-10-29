@@ -54,7 +54,7 @@ Admin: `GET/POST /api/admin/games`, `GET/PUT/DELETE /api/admin/games/:id`,
 
 Each quiz has a `theme`, picked in the builder: **gameshow** (default — bold
 A–D answer tiles, confetti, a podium) or **railway** (departure-board lettering,
-platform signs, ON TIME / DELAYED / CANCELLED, an arrivals board). Both play
+platform-sign answer tiles, a departure-board scoreboard). Same words in both. Both play
 pages share `views/assets/quiz.css` (both themes) and `views/assets/ui.js`
 (flap tiles, answer widgets, reveal flourishes, final board), served at
 `/assets/`. On typed / choice / number rounds the globe stays as a dimmed,

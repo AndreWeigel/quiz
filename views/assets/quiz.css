@@ -105,9 +105,7 @@ body.stage .top .q { font-size: clamp(1.6rem, 5.4vw, 2.6rem); line-height: 1.12;
 @media (min-width: 760px) { #answer.choice { display: grid; grid-template-columns: 1fr 1fr; } }
 [data-theme="railway"] .opt { --tb: var(--sign); --ts: transparent; --ti: #fff; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
 [data-theme="railway"] .opt .k { width: 40px; height: 40px; border-radius: 50%; background: #fff; color: var(--sign); font: 800 1.1rem var(--body); }
-[data-theme="railway"] .opt::after { content: "PLATFORM"; font: 700 .66rem var(--mono); letter-spacing: .1em; color: rgba(255,255,255,.65); }
 [data-theme="railway"] .opt.sel { --tb: var(--sign-hi); box-shadow: 0 0 0 3px var(--amber); }
-[data-theme="railway"] .opt.sel::after { content: none; }
 [data-theme="railway"] .opt:not(:disabled):active { transform: translateY(1px); box-shadow: 0 0 0 3px var(--amber); }
 
 .field { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 14px; }
@@ -165,9 +163,7 @@ body.stage .sheet { left: 50%; right: auto; transform: translateX(-50%); top: au
 .sheet tr.me td { color: var(--gold); font-weight: 700; }
 [data-theme="railway"] .verdict.perfect { background: var(--good); } [data-theme="railway"] .verdict.wrong { background: var(--bad); color: #1b0606; }
 [data-theme="railway"] .pts { font-family: var(--qfont); color: var(--amber); }
-[data-theme="railway"] .story { background: #f3ead7; color: #1d1a14; border-radius: 8px; padding: 12px 64px 12px 14px; position: relative; font-size: .9rem; min-height: 96px; }
-[data-theme="railway"] .story::after { content: "ADMIT ONE"; position: absolute; right: 0; top: 0; bottom: 0; width: 50px; border-left: 2px dashed #bfae89;
-  writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center; font: 700 .66rem var(--mono); letter-spacing: .16em; color: #7a6a4a; }
+[data-theme="railway"] .story { background: #f3ead7; color: #1d1a14; border-radius: 8px; padding: 12px 14px; font-size: .9rem; }
 @media (max-width: 699px) { .sheet { top: auto; bottom: 92px; right: 12px; max-height: 46dvh; } .sheet img { max-height: 120px; object-fit: cover; } }
 
 /* ---- overlays: name, final board ---- */
@@ -200,11 +196,8 @@ body.stage .sheet { left: 50%; right: auto; transform: translateX(-50%); top: au
 .board td { padding: 8px 4px; border-top: 1px solid var(--line); }
 .board td.r { width: 2.2em; font-family: var(--mono); color: var(--muted); }
 .board td.s { text-align: right; font-family: var(--mono); color: var(--gold); }
-.board td.st { font: 700 .66rem var(--mono); letter-spacing: .06em; }
 .board tr.me td { color: var(--gold); font-weight: 700; }
 [data-theme="railway"] .board { font: 900 1.05rem var(--qfont); color: var(--amber); background: #050505; border-radius: 8px; }
-[data-theme="railway"] .board td.st.ontime { color: var(--good); } [data-theme="railway"] .board td.st.delayed { color: var(--amber); }
-[data-theme="railway"] .board td.st.cancelled { color: var(--bad); }
 
 /* ---- confetti (perfect answers, game show) ---- */
 .confetti { position: fixed; inset: 0; z-index: 9; pointer-events: none; overflow: hidden; }
