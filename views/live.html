@@ -314,6 +314,10 @@ function render() {
   const roundChanged = snap.state !== shown.state || (snap.round && snap.round.ord !== shown.ord);
   if (roundChanged && (snap.state === 'open' || snap.state === 'lobby' || snap.state === 'finished')) { clearGlobe(); sent = false; }
   if (roundChanged) {
+    // Phones: the name keyboard can leave the page scrolled / the canvas sized for the old viewport,
+    // which shows the globe tiny or off in a corner until a reload. Re-settle both.
+    scrollTo(0, 0);
+    map.resize();
     const inRound = snap.state === 'open' || snap.state === 'revealed';
     stage(map, !(inRound && isLoc())); // the globe is sharp only while a location round is played or revealed
     if (snap.state === 'open') {
@@ -353,14 +357,22 @@ async function confirmGuess() {
 $('action').addEventListener('click', confirmGuess);
 
 // ---- host controls ----
+// Render the host's own action from the response: the event stream can be silently stale
+// (phone backgrounded), and a stale "Reveal" button clicked again would skip a whole round.
+async function hostAction(path) {
+  const resp = await fetch(`/api/admin/sessions/${code}/${path}`, { method: 'POST' });
+  if (resp.ok) { snap = await resp.json(); render(); }
+  else $('hint').textContent = `Could not ${path} — try again`;
+}
 $('next').addEventListener('click', async () => {
   $('next').disabled = true;
-  try { await fetch(`/api/admin/sessions/${code}/next`, { method: 'POST' }); }
+  try { await hostAction('next'); }
+  catch { $('hint').textContent = 'Network hiccup — try again'; }
   finally { $('next').disabled = false; }
 });
 $('end').addEventListener('click', async () => {
   if (!confirm('End this session for everyone? The scoreboard shows what has been revealed so far.')) return;
-  await fetch(`/api/admin/sessions/${code}/end`, { method: 'POST' });
+  await hostAction('end');
 });
 $('copy').addEventListener('click', () => {
   const url = $('joinlink').value;
@@ -369,11 +381,15 @@ $('copy').addEventListener('click', () => {
 });
 
 // ---- joining + the stream ----
+let es = null;
 function connect() {
-  const es = new EventSource(`/live/api/${code}/events?token=${encodeURIComponent(token || '')}`);
+  if (es) es.close();
+  es = new EventSource(`/live/api/${code}/events?token=${encodeURIComponent(token || '')}`);
   es.addEventListener('state', (e) => { snap = JSON.parse(e.data); render(); });
   es.onerror = () => { $('hint').textContent = 'Reconnecting…'; };
 }
+// Back from a locked screen / another app: the old stream may be dead without an error. A fresh one sends the current state.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && es) connect(); });
 $('join').addEventListener('click', async () => {
   const name = $('pname').value.trim();
   if (!name) return $('pname').focus();
@@ -384,6 +400,7 @@ $('join').addEventListener('click', async () => {
   const p = await resp.json();
   token = p.token;
   try { localStorage.setItem(KEY, token); } catch {}
+  $('pname').blur(); // drop the phone keyboard before the globe settles its size
   $('nameov').hidden = true;
   connect();
 });
