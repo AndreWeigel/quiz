@@ -244,8 +244,8 @@ export function labelReveal(truth, mine) {
 // Round counter + progress segments in the top bar.
 // The image shown with a question (round.qphoto), or none when round is null / has none.
 // Tap opens it full screen (an overlay on <body>: .top is transformed, so it can't host a fixed child).
-export function qImage(img, round) {
-  const src = round && round.qphoto ? `/uploads/${round.qphoto}` : null;
+// Tap a picture to see it full screen; tap again to close.
+function zoomable(img) {
   img.onclick = () => {
     const ov = el('div', 'qbig'), big = el('img');
     big.src = img.src; big.alt = img.alt;
@@ -253,6 +253,23 @@ export function qImage(img, round) {
     ov.onclick = () => ov.remove();
     document.body.append(ov);
   };
+}
+
+// Last thing a reveal adds: the photo and story. Wide screens put them in a column beside the result,
+// phones under it (the CSS moves any scores table below them).
+export function revealExtras(panel, src, alt, story) {
+  panel.classList.toggle('split', Boolean(src || story));
+  if (!src && !story) return;
+  const main = el('div', 'main'), extra = el('div', 'extra');
+  main.append(...panel.children);
+  if (src) { const img = extra.appendChild(el('img')); img.src = src; img.alt = alt || 'photo'; zoomable(img); }
+  if (story) extra.appendChild(el('div', 'story', story));
+  panel.append(main, extra);
+}
+
+export function qImage(img, round) {
+  const src = round && round.qphoto ? `/uploads/${round.qphoto}` : null;
+  zoomable(img);
   if (!src) { img.hidden = true; img.removeAttribute('src'); document.querySelector('.qbig')?.remove(); return; }
   if (img.getAttribute('src') !== src) img.src = src;
   img.hidden = false;

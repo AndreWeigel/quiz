@@ -42,7 +42,7 @@
 <div class="credit">Imagery © Esri &amp; contributors · MapLibre</div>
 <script type="module">
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
-import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage, labelReveal, revealPadding }
+import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage, labelReveal, revealPadding, revealExtras }
   from '/assets/ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -187,10 +187,7 @@ function myResult(panel, guesses, roundChanged) {
 function answerLabel(panel, label) {
   if (label) panel.appendChild(label.length <= 26 ? flaps(label, true) : el('div', 'ans', label));
 }
-function extras(panel, truth) {
-  if (truth.photo) { const img = el('img'); img.src = photoUrl(truth.photo); img.alt = truth.answer || 'photo'; panel.appendChild(img); }
-  if (truth.story) panel.appendChild(el('div', 'story', truth.story));
-}
+const extras = (panel, truth) => revealExtras(panel, truth.photo && photoUrl(truth.photo), truth.answer, truth.story);
 
 function renderReveal(roundChanged) {
   const { truth, guesses } = snap.reveal;
@@ -225,8 +222,8 @@ function renderReveal(roundChanged) {
     tr.append(el('td', null, '–'), el('td', null, p.name), el('td', 'n', 'no pin'), el('td', 'pts-c', '+0'));
     table.appendChild(tr);
   }
-  extras(panel, truth); // photo and story before the table, so they're in view without scrolling
   panel.appendChild(table);
+  extras(panel, truth);
   panel.hidden = false;
   panel.scrollTop = 0;
   whenLoaded(() => { // after the panel is filled: the camera fits around it
@@ -273,8 +270,8 @@ function renderAnswerReveal(truth, guesses, roundChanged) {
     tr.append(el('td', null, '–'), el('td', null, p.name), el('td', 'n', 'no answer'), el('td', 'pts-c', '+0'));
     table.appendChild(tr);
   }
-  extras(panel, truth); // photo and story before the table, so they're in view without scrolling
   panel.appendChild(table);
+  extras(panel, truth);
   panel.hidden = false;
   panel.scrollTop = 0;
 }
