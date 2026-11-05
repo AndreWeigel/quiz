@@ -222,3 +222,25 @@ test('theme: defaults to gameshow, PUT switches it, public view and live snapsho
     assert.equal((await (await fetch(`${base}/live/api/${code}/state`)).json()).theme, 'railway');
   });
 });
+
+test('label the image: names go out sorted without positions, partial credit per box', () => {
+  const { TYPES } = require('../src/types');
+  const t = TYPES.label;
+  const zones = [{ label: 'Horn', x: 0.6, y: 0.1, w: 0.1, h: 0.1 }, { label: 'Contact strip', x: 0.4, y: 0.1, w: 0.15, h: 0.1 },
+    { label: 'Isolator', x: 0.7, y: 0.8, w: 0.1, h: 0.1 }];
+  const ok = t.clean({ spec: { image: 'a1b2c3d4e5f60718.jpg', zones } });
+  assert.equal(ok.spec.zones.length, 3);
+  assert.ok(t.clean({ spec: { image: 'a1b2c3d4e5f60718.jpg', zones: [zones[0]] } }).error, 'one box is not a question');
+  assert.ok(t.clean({ spec: { image: 'a1b2c3d4e5f60718.jpg', zones: [zones[0], { ...zones[1], label: 'horn' }] } }).error, 'names must differ');
+  assert.ok(t.clean({ spec: { image: 'x.jpg', zones } }).error);
+  const round = { spec: ok.spec };
+  const pub = t.publicRound(round);
+  assert.deepEqual(pub.labels, ['Contact strip', 'Horn', 'Isolator']);
+  assert.ok(pub.zones.every((z) => !('label' in z)), 'boxes carry no names');
+  assert.equal(t.score(round, { answer: ['Horn', 'Contact strip', 'Isolator'] }).points, 100);
+  assert.equal(t.score(round, { answer: ['Horn', 'Isolator', null] }).points, 33);
+  assert.equal(t.cleanGuess(round, { answer: ['Horn', 'Horn', null] }), null, 'a name is used once');
+  assert.equal(t.cleanGuess(round, { answer: ['Nope', null, null] }), null);
+  assert.equal(t.cleanGuess(round, { answer: [null, null, null] }), null);
+  assert.equal(t.cleanGuess(round, { answer: ['Horn'] }), null);
+});

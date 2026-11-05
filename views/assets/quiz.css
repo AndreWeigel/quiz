@@ -104,6 +104,26 @@ body.stage .top .q { font-size: clamp(1.6rem, 5.4vw, 2.6rem); line-height: 1.12;
 .opt.sel { box-shadow: 0 4px 0 var(--ts), 0 0 0 3px #fff; font-weight: 700; }
 .opt.sel .tick { display: block; }
 #answer.picked .opt:not(.sel) { opacity: .55; }
+/* label the image: the picture with drop boxes, names in a tray under it */
+.lwrap { position: relative; align-self: center; width: fit-content; max-width: 100%; user-select: none; -webkit-user-select: none; }
+.lwrap img { display: block; max-width: 100%; max-height: max(180px, calc(100dvh - 470px)); border-radius: 10px; }
+.sheet .lwrap img { max-height: 46vh; border: 0; }
+.zone { position: absolute; border: 2px dashed rgba(255,255,255,.85); border-radius: 6px; background: rgba(7,11,28,.18);
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+#answer.holding .zone:not(.filled) { border-color: var(--gold); background: rgba(255,209,92,.18); cursor: pointer; }
+.zone.over { border-style: solid; border-color: var(--gold); background: rgba(255,209,92,.3); }
+.zone.filled { border-style: solid; }
+.zone.right { border: 2px solid var(--good); } .zone.wrong { border: 2px solid var(--bad); }
+.zone.right .chip { background: var(--good); color: #052e16; } .zone.wrong .chip { background: var(--bad); color: #fff; }
+.tray { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 44px; }
+.chip { border: 0; border-radius: 10px; padding: 8px 14px; min-height: 40px; font: 700 .92rem var(--body); white-space: nowrap;
+  background: var(--t0); color: #fff; box-shadow: 0 3px 0 var(--t0s); cursor: grab; touch-action: none; }
+[data-theme="railway"] .chip { background: var(--sign); box-shadow: 0 3px 0 #0a1c40; font-family: var(--mono); }
+.chip.held { outline: 3px solid var(--gold); outline-offset: 2px; }
+.chip.dragging { opacity: .35; }
+.zone .chip { position: relative; z-index: 1; padding: 4px 10px; min-height: 0; font-size: .8rem; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.chip.ghost { position: fixed; z-index: 40; pointer-events: none; transform: translate(-50%, -60%) rotate(-3deg); cursor: grabbing;
+  box-shadow: 0 10px 24px rgba(0,0,0,.55); }
 .opt:disabled { cursor: default; }
 .opt.c0 { --tb: var(--t0); --ts: var(--t0s); --ti: var(--t0i); } .opt.c1 { --tb: var(--t1); --ts: var(--t1s); --ti: var(--t1i); }
 .opt.c2 { --tb: var(--t2); --ts: var(--t2s); --ti: var(--t2i); } .opt.c3 { --tb: var(--t3); --ts: var(--t3s); --ti: var(--t3i); }

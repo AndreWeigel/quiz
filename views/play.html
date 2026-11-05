@@ -33,7 +33,7 @@
 <div class="credit">Imagery © Esri &amp; contributors · MapLibre</div>
 <script type="module">
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
-import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage }
+import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage, labelReveal }
   from '/assets/ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -145,6 +145,10 @@ function showReveal(r, g) {
     rd.options.forEach((o, i) => list.appendChild(el('div', `o${i === t.correct ? ' right' : ''}${i === g.answer ? ' mine' : ''}`,
       `${i === t.correct ? '✓' : i === g.answer ? '✗' : '·'}  ${o}`)));
     if (t.answer !== rd.options[t.correct]) answer(t.answer);
+  } else if (rd.type === 'label') {
+    add(el('div', 'note', `${t.zones.filter((z, i) => g.answer[i] === z.label).length} of ${t.zones.length} in the right spot`));
+    add(labelReveal(t, g.answer));
+    answer(t.answer);
   } else if (rd.type === 'number') {
     const u = t.unit ? ` ${t.unit}` : '';
     add(el('div', 'note', `you said ${fmtNum(g.answer)}${u} · off by ${fmtNum(Math.abs(g.answer - t.value))}${u}`));

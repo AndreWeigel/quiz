@@ -151,6 +151,14 @@
   .phrow img { width: 120px; height: 84px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }
   .addph { display: inline-flex; align-items: center; justify-content: center; width: 120px; height: 84px; cursor: pointer;
     border: 1px dashed var(--border); border-radius: 10px; color: var(--muted); font: .78rem var(--mono); }
+  .addph.wide { width: 100%; height: 140px; }
+  .lzed { position: relative; width: fit-content; max-width: 100%; margin-bottom: 12px; touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none; }
+  .lzed img { display: block; max-width: 100%; max-height: 60vh; border-radius: 10px; }
+  .lz { position: absolute; border: 2px solid var(--cyan); background: rgba(34,211,238,.16); border-radius: 4px; cursor: pointer; }
+  .lz.draft { border-style: dashed; pointer-events: none; }
+  .lz span, .zn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--cyan); color: var(--ink); font: 700 .7rem var(--mono); flex: none; }
+  .lz span { position: absolute; top: -11px; left: -11px; }
   .addph:hover, .addph:focus-within { border-color: rgba(34,211,238,.45); color: var(--cyan); }
   .story { resize: vertical; min-height: 72px; line-height: 1.45; }
   .blank { text-align: center; padding: 48px 22px; color: var(--muted); }
@@ -258,7 +266,7 @@ function countPositions(g) { let n = 0; const walk = (c) => { if (!Array.isArray
 const setStatus = (t, warn = false) => { $('status').textContent = t; $('status').classList.toggle('warn', warn); };
 
 // Question types (server: src/types.js).
-const TYPE_LABELS = { location: 'Location', text: 'Typed answer', choice: 'Multiple choice', number: 'Number' };
+const TYPE_LABELS = { location: 'Location', text: 'Typed answer', choice: 'Multiple choice', number: 'Number', label: 'Label the image' };
 const THEMES = { gameshow: 'Game show', railway: 'Railway' };
 const svg = (d, w = 2) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICON = {
@@ -272,10 +280,12 @@ const ICON = {
   text: svg('<path d="M4 7V5h16v2M12 5v14M9 19h6"/>'),
   choice: svg('<path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="5" cy="18" r="1.5"/>'),
   number: svg('<path d="M5 9h14M5 15h14M10 4L8 20M16 4l-2 16"/>'),
+  label: svg('<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>'),
 };
 const Q_HINT = { location: 'e.g. Where was Daniel born?', text: 'e.g. Which tunnel is the longest in the world?',
-  choice: 'e.g. Which station has the most platforms?', number: 'e.g. How long is the Gotthard Base Tunnel?' };
-const NEW_SPEC = { text: () => ({ accept: [] }), choice: () => ({ options: ['', ''], correct: 0 }), number: () => ({}) };
+  choice: 'e.g. Which station has the most platforms?', number: 'e.g. How long is the Gotthard Base Tunnel?',
+  label: 'e.g. Name the parts of the pantograph' };
+const NEW_SPEC = { text: () => ({ accept: [] }), choice: () => ({ options: ['', ''], correct: 0 }), number: () => ({}), label: () => ({ zones: [] }) };
 const typeOf = (r) => r.type || 'location';
 const defaultHalve = (v) => (Number.isFinite(v) ? +Math.max(Math.abs(v) / 10, 1).toPrecision(3) : '');
 // Anything typed into the type-specific fields, i.e. what switching type would throw away.
@@ -301,6 +311,13 @@ function problem(r) {
   switch (typeOf(r)) {
     case 'text': return s.accept && s.accept.length ? '' : 'needs at least one accepted answer';
     case 'choice': return s.options.length >= 2 && s.options.every((o) => o.trim()) ? '' : 'needs 2–6 filled-in options';
+    case 'label': {
+      const zs = s.zones || [];
+      if (!s.image) return 'needs a picture';
+      if (zs.length < 2) return 'needs at least 2 marked spots — drag on the picture';
+      if (zs.some((z) => !(z.label || '').trim())) return 'has a spot without a name';
+      return new Set(zs.map((z) => z.label.trim().toLowerCase())).size === zs.length ? '' : 'has two spots with the same name';
+    }
     case 'number':
       if (!Number.isFinite(s.value)) return 'needs a number as its answer';
       return ['tolerance', 'halve'].every((k) => s[k] == null || (Number.isFinite(s[k]) && (k === 'halve' ? s[k] > 0 : s[k] >= 0))) ? '' : 'has a margin that is not a number';
@@ -318,6 +335,20 @@ function typeFields(r, i) {
     <label class="f">Accepted answers <small>one per line</small>
       <textarea class="accept" data-accept="${i}" placeholder="Gotthard Base Tunnel&#10;Gotthard">${esc((s.accept || []).join('\n'))}</textarea></label>
     <div class="tnote">Case, accents, punctuation and small typos are forgiven. Answers with digits must match exactly.</div>`;
+  if (typeOf(r) === 'label') {
+    const zs = s.zones || [], pct = (v) => `${(v * 100).toFixed(2)}%`;
+    if (!s.image) return `<div class="f">Picture <small>players drag the names onto the spots you mark on it</small></div>
+      <label class="addph wide">+ picture<input type="file" accept="image/*" data-limg="${i}" hidden></label>`;
+    return `<div class="f">Picture <small>drag on it to mark a spot (up to 12), then name each spot below</small></div>
+      <div class="lzed" id="lzed"><img src="/uploads/${esc(s.image)}" alt="" draggable="false">
+        ${zs.map((z, j) => `<div class="lz" data-lz="${j}" style="left:${pct(z.x)};top:${pct(z.y)};width:${pct(z.w)};height:${pct(z.h)}"><span>${j + 1}</span></div>`).join('')}</div>
+      <div class="zl">${zs.map((z, j) => `
+        <div class="opt"><span class="zn">${j + 1}</span>
+          <input type="text" data-zlabel="${i}:${j}" value="${esc(z.label || '')}" placeholder="Name of spot ${j + 1}" maxlength="40" aria-label="Name of spot ${j + 1}">
+          <button class="icon danger" data-zdel="${i}:${j}" aria-label="Remove spot ${j + 1}">${ICON.x}</button></div>`).join('')}</div>
+      <div class="tnote">Players get the names shuffled. Points = share of names put on the right spot.</div>
+      <button class="sm" data-limgclear="${i}">Change picture</button>`;
+  }
   if (typeOf(r) === 'choice') {
     const opts = s.options || [];
     return `<div class="f">Options <small>tick the right one — right = 100 pts, wrong = 0</small></div>
@@ -635,6 +666,36 @@ main.addEventListener('pointerdown', (e) => {
   h.addEventListener('pointerup', up);
   h.addEventListener('pointercancel', up);
 });
+// Label rounds: drag on the picture to mark a spot; tap a spot to jump to its name.
+main.addEventListener('pointerdown', (e) => {
+  const ed = e.target.closest('#lzed');
+  if (!ed || !editing || e.button > 0) return;
+  const r = editing.rounds[editing.sel], lz = e.target.closest('[data-lz]');
+  if (lz) return document.querySelector(`[data-zlabel="${editing.sel}:${lz.dataset.lz}"]`)?.focus();
+  e.preventDefault();
+  if (r.spec.zones.length >= 12) return setStatus('12 spots is the most a picture can have', true);
+  const R = ed.getBoundingClientRect(), clamp = (v) => Math.min(Math.max(v, 0), 1);
+  const fx = (x) => clamp((x - R.left) / R.width), fy = (y) => clamp((y - R.top) / R.height);
+  const x0 = fx(e.clientX), y0 = fy(e.clientY), draft = ed.appendChild(document.createElement('div'));
+  draft.className = 'lz draft';
+  let z = null;
+  ed.setPointerCapture(e.pointerId);
+  const move = (ev) => {
+    const x1 = fx(ev.clientX), y1 = fy(ev.clientY);
+    z = { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
+    Object.assign(draft.style, { left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%` });
+  };
+  const up = () => {
+    ed.removeEventListener('pointermove', move); ed.removeEventListener('pointerup', up); ed.removeEventListener('pointercancel', up);
+    draft.remove();
+    if (!z || z.w < 0.02 || z.h < 0.02) return; // a tap, not a box
+    const f = (v) => +v.toFixed(4);
+    r.spec.zones.push({ label: '', x: f(z.x), y: f(z.y), w: f(z.w), h: f(z.h) });
+    editing.dirty = true; render();
+    document.querySelector(`[data-zlabel="${editing.sel}:${r.spec.zones.length - 1}"]`)?.focus();
+  };
+  ed.addEventListener('pointermove', move); ed.addEventListener('pointerup', up); ed.addEventListener('pointercancel', up);
+});
 main.addEventListener('keydown', (e) => {
   const h = e.target.closest('[data-handle]');
   if (!h || !['ArrowUp', 'ArrowDown'].includes(e.key)) return;
@@ -683,6 +744,10 @@ main.addEventListener('click', async (e) => {
   if (mappick !== undefined) return openMapPicker(+mappick);
   const delphoto = btn('delphoto');
   if (delphoto !== undefined) { delete editing.rounds[+delphoto].photo; editing.dirty = true; return render(); }
+  const zdel = btn('zdel');
+  if (zdel !== undefined) { const [i, j] = zdel.split(':').map(Number); editing.rounds[i].spec.zones.splice(j, 1); editing.dirty = true; return render(); }
+  const limgclear = btn('limgclear');
+  if (limgclear !== undefined) { delete editing.rounds[+limgclear].spec.image; editing.dirty = true; return render(); } // spots stay, for a similar picture
   const delqphoto = btn('delqphoto');
   if (delqphoto !== undefined) { delete editing.rounds[+delqphoto].qphoto; editing.dirty = true; return render(); }
   const preset = btn('preset');
@@ -718,6 +783,7 @@ main.addEventListener('input', (e) => {
   else if (d.answer !== undefined) { if (t.value.trim()) r.answer = t.value; else delete r.answer; }
   else if (d.accept !== undefined) r.spec = { accept: t.value.split('\n').map((x) => x.trim()).filter(Boolean) };
   else if (d.opt !== undefined) r.spec.options[+d.opt.split(':')[1]] = t.value;
+  else if (d.zlabel !== undefined) r.spec.zones[+d.zlabel.split(':')[1]].label = t.value;
   else if (d.num !== undefined) {
     const s = r.spec, k = d.num.split(':')[1], raw = t.value.trim();
     if (k === 'unit') { if (raw) s.unit = raw; else delete s.unit; }
@@ -778,7 +844,7 @@ main.addEventListener('change', async (e) => {
     [r.lat, r.lng] = c || [NaN, NaN];
     editing.dirty = true; return render();
   }
-  for (const key of ['photo', 'qphoto']) { // reveal photo / question image: same upload
+  for (const key of ['photo', 'qphoto', 'limg']) { // reveal photo / question image / label picture: same upload
     [i, el] = val(key);
     if (!el || !el.files[0]) continue;
     const f = el.files[0], r = editing.rounds[i];
@@ -786,7 +852,8 @@ main.addEventListener('change', async (e) => {
     try {
       const resp = await fetch('/api/upload', { method: 'POST', headers: { 'content-type': f.type }, body: f });
       if (!resp.ok) throw new Error(resp.status);
-      r[key] = (await resp.json()).file;
+      const file = (await resp.json()).file;
+      if (key === 'limg') r.spec.image = file; else r[key] = file;
       editing.dirty = true; render();
     } catch { setStatus('Upload failed — jpeg/png/webp/gif up to 8 MB', true); }
     return;

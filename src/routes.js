@@ -3,12 +3,11 @@
 const path = require('node:path');
 const express = require('express');
 const { openGameDb } = require('./db');
-const { TYPES, typeOf, publicRound, optStr } = require('./types');
+const { TYPES, typeOf, publicRound, optStr, PHOTO_FILE } = require('./types');
 const liveRoutes = require('./live');
 
 const VIEWS = path.join(__dirname, '..', 'views');
-// Same pattern the upload endpoint in src/index.js generates.
-const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/;
+
 const THEMES = ['gameshow', 'railway'];
 
 // Round from the builder → { round } with a clean row, or { error } with the message to show.

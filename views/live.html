@@ -42,7 +42,7 @@
 <div class="credit">Imagery © Esri &amp; contributors · MapLibre</div>
 <script type="module">
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
-import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage }
+import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage, labelReveal }
   from '/assets/ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -115,7 +115,8 @@ const isMe = (playerId) => !!(snap.you && snap.you.playerId === playerId);
 const photoUrl = (file) => `/live/api/${code}/photo/${file}`;
 const isLoc = () => !snap.round || snap.round.type === 'location';
 // A player's answer as text, for the reveal table.
-const answerText = (a) => (snap.round.type === 'choice' ? snap.round.options[a] ?? '?'
+const answerText = (a) => (snap.round.type === 'label' ? `${snap.reveal.truth.zones.filter((z, i) => a[i] === z.label).length}/${a.length} right`
+  : snap.round.type === 'choice' ? snap.round.options[a] ?? '?'
   : snap.round.type === 'number' ? `${fmtNum(a)}${snap.round.unit ? ' ' + snap.round.unit : ''}` : `“${a}”`);
 const myTotal = () => (snap.standings.find((s) => isMe(s.playerId)) || {}).total;
 
@@ -257,12 +258,16 @@ function renderAnswerReveal(truth, guesses, roundChanged) {
     });
     panel.appendChild(list);
     if (truth.answer !== r.options[truth.correct]) answerLabel(panel, truth.answer);
+  } else if (r.type === 'label') {
+    const mine = guesses.find((g) => isMe(g.playerId));
+    panel.appendChild(labelReveal(truth, HOST ? null : mine ? mine.answer : Array(truth.zones.length).fill(null)));
+    answerLabel(panel, truth.answer);
   } else answerLabel(panel, truth.answer);
   const table = el('table');
   guesses.forEach((g, i) => {
     const tr = el('tr', isMe(g.playerId) ? 'me' : '');
     tr.append(el('td', null, `${i + 1}.`), el('td', null, g.name),
-      el('td', 'n ' + (g.correct ? 'ok' : ''), `${answerText(g.answer)} ${g.correct ? '✓' : r.type === 'number' ? '' : '✗'}`.trim()),
+      el('td', 'n ' + (g.correct ? 'ok' : ''), `${answerText(g.answer)} ${g.correct ? '✓' : r.type === 'number' || r.type === 'label' ? '' : '✗'}`.trim()),
       el('td', 'pts-c', `+${g.points}`));
     table.appendChild(tr);
   });

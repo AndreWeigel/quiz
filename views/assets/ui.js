@@ -99,6 +99,7 @@ export function answerWidget(box, round, { onChange = () => {}, onEnter = () => 
   box.replaceChildren();
   box.className = round.type;
   box.classList.remove('picked');
+  if (round.type === 'label') return labelWidget(box, round, onChange, readOnly);
   if (round.type === 'choice') {
     round.options.forEach((o, i) => {
       const b = el('button', `opt c${i % 6}`);
@@ -126,6 +127,111 @@ export function answerWidget(box, round, { onChange = () => {}, onEnter = () => 
   if (round.unit) f.appendChild(el('span', 'unit', round.unit));
   box.appendChild(f);
   setTimeout(() => inp.focus({ preventScroll: true }), 50);
+}
+
+// The picture with its boxes, positioned in % so they track the image at any size.
+function zoneBoard(image) {
+  const wrap = el('div', 'lwrap'), img = el('img');
+  img.src = `/uploads/${image}`; img.alt = 'Picture to label'; img.draggable = false;
+  wrap.appendChild(img);
+  return wrap;
+}
+function zoneBox(wrap, z, cls) {
+  const d = el('div', cls);
+  Object.assign(d.style, { left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%` });
+  return wrap.appendChild(d);
+}
+
+// Label the image: drag a name onto a box, or tap a name then a box. Tap (or drag off) a
+// placed name to take it back; dropping on a filled box swaps. onChange(names per box | null).
+function labelWidget(box, round, onChange, readOnly) {
+  const n = round.zones.length, placed = Array(n).fill(null);
+  const wrap = zoneBoard(round.image), tray = el('div', 'tray');
+  const zones = round.zones.map((z, i) => {
+    const d = zoneBox(wrap, z, 'zone');
+    d.tabIndex = readOnly ? -1 : 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', `Spot ${i + 1}`);
+    return d;
+  });
+  const chips = new Map(round.labels.map((l) => {
+    const c = el('button', 'chip', l);
+    c.type = 'button'; c.disabled = readOnly;
+    return [l, c];
+  }));
+  box.append(wrap, tray);
+  let held = null;
+  const draw = () => {
+    tray.replaceChildren(...round.labels.filter((l) => !placed.includes(l)).map((l) => chips.get(l)));
+    zones.forEach((d, i) => { d.replaceChildren(...(placed[i] ? [chips.get(placed[i])] : [])); d.classList.toggle('filled', !!placed[i]); });
+    for (const [l, c] of chips) c.classList.toggle('held', l === held);
+    box.classList.toggle('holding', !!held);
+    onChange(placed.some(Boolean) ? [...placed] : null);
+  };
+  // Move `label` to box `zi` (null: back to the tray). A name already there swaps into the old spot.
+  const put = (label, zi) => {
+    const from = placed.indexOf(label);
+    if (zi != null) { if (from !== -1) placed[from] = placed[zi]; placed[zi] = label; }
+    else if (from !== -1) placed[from] = null;
+    held = null;
+    draw();
+  };
+  // The box under (or within 28 px of) a point — small boxes are hard to hit with a thumb.
+  const zoneAt = (x, y) => {
+    let best = null, bd = 28;
+    zones.forEach((d, i) => {
+      const r = d.getBoundingClientRect();
+      const dist = Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom));
+      if (dist < bd) { bd = dist; best = i; }
+    });
+    return best;
+  };
+  const tap = (label) => {
+    const at = placed.indexOf(label);
+    if (held && held !== label && at !== -1) return put(held, at); // holding a name, tapped a placed one: take its spot
+    if (at !== -1) return put(label, null);
+    held = held === label ? null : label;
+    draw();
+  };
+  draw();
+  if (readOnly) return;
+  zones.forEach((d, i) => {
+    d.onclick = (e) => { if (held && !e.target.closest('.chip')) put(held, i); };
+    d.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && held) { e.preventDefault(); put(held, i); } };
+  });
+  for (const [label, c] of chips) {
+    c.onclick = (e) => { if (e.detail === 0) tap(label); }; // keyboard; pointer taps are handled below
+    c.onpointerdown = (e) => {
+      if (e.button > 0) return;
+      e.preventDefault();
+      const sx = e.clientX, sy = e.clientY;
+      let ghost = null;
+      c.setPointerCapture(e.pointerId);
+      const move = (ev) => {
+        if (!ghost && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return;
+        if (!ghost) { ghost = document.body.appendChild(el('div', 'chip ghost', label)); c.classList.add('dragging'); }
+        ghost.style.left = `${ev.clientX}px`; ghost.style.top = `${ev.clientY}px`;
+        const over = zoneAt(ev.clientX, ev.clientY);
+        zones.forEach((d, i) => d.classList.toggle('over', i === over));
+      };
+      const up = (ev) => {
+        c.removeEventListener('pointermove', move); c.removeEventListener('pointerup', up); c.removeEventListener('pointercancel', up);
+        zones.forEach((d) => d.classList.remove('over'));
+        if (!ghost) return ev.type === 'pointerup' && tap(label);
+        ghost.remove(); c.classList.remove('dragging');
+        put(label, ev.type === 'pointerup' ? zoneAt(ev.clientX, ev.clientY) : placed.indexOf(label) === -1 ? null : placed.indexOf(label));
+      };
+      c.addEventListener('pointermove', move); c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    };
+  }
+}
+
+// The reveal of a label round: every box with its right name; with `mine`, green where I got it, red where not.
+export function labelReveal(truth, mine) {
+  const wrap = zoneBoard(truth.image);
+  truth.zones.forEach((z, i) => {
+    const d = zoneBox(wrap, z, 'zone' + (mine ? (mine[i] === z.label ? ' right' : ' wrong') : ''));
+    d.appendChild(el('span', 'chip', z.label));
+  });
+  return wrap;
 }
 
 // Round counter + progress segments in the top bar.

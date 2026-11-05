@@ -8,6 +8,8 @@
 const { points, distanceToRound, textCorrect, numberPoints } = require('./scoring');
 const { normalizeGeometry, bboxCenter } = require('./geo');
 
+const PHOTO_FILE = /^[a-f0-9]{16}\.(jpg|png|webp|gif)$/; // what /api/upload names files
+const frac = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
 const optStr = (v) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
 const validCoords = (lat, lng) =>
   Number.isFinite(lat) && Math.abs(lat) <= 90 && Number.isFinite(lng) && Math.abs(lng) <= 180;
@@ -107,6 +109,36 @@ const TYPES = {
       answer: round.answer || [round.spec.value, round.spec.unit].filter((x) => x != null).join(' '),
     }),
   },
+
+  // Label the image: zones are boxes on the picture as fractions of its size (0–1),
+  // each with the name that belongs there. Players drag the shuffled names onto the boxes.
+  label: {
+    clean(r) {
+      const s = r.spec || {};
+      const zones = Array.isArray(s.zones) ? s.zones.map((z) => z && ({ label: optStr(z.label), x: z.x, y: z.y, w: z.w, h: z.h })) : [];
+      const err = { error: 'label the image: an image and 2–12 marked spots, each with its own name' };
+      if (!PHOTO_FILE.test(s.image || '') || zones.length < 2 || zones.length > 12) return err;
+      if (zones.some((z) => !z || !z.label || z.label.length > 40 || ![z.x, z.y, z.w, z.h].every(frac)
+        || z.w < 0.01 || z.h < 0.01 || z.x + z.w > 1.001 || z.y + z.h > 1.001)) return err;
+      if (new Set(zones.map((z) => z.label.toLowerCase())).size !== zones.length) return err;
+      return { spec: { image: s.image, zones } };
+    },
+    // Names go out sorted, so their order says nothing about which box they belong to.
+    publicRound: (round) => ({ image: round.spec.image, zones: round.spec.zones.map(({ x, y, w, h }) => ({ x, y, w, h })),
+      labels: round.spec.zones.map((z) => z.label).sort((a, b) => a.localeCompare(b)) }),
+    // answer: one name (or null) per box, in box order; each name at most once.
+    cleanGuess(round, b) {
+      const a = b.answer, names = new Set(round.spec.zones.map((z) => z.label));
+      if (!Array.isArray(a) || a.length !== round.spec.zones.length || !a.some((x) => x != null)) return null;
+      const used = a.filter((x) => x != null);
+      return used.every((x) => names.has(x)) && new Set(used).size === used.length ? { answer: a } : null;
+    },
+    score(round, g) {
+      const right = round.spec.zones.filter((z, i) => g.answer[i] === z.label).length;
+      return { correct: right === round.spec.zones.length, points: Math.round(100 * right / round.spec.zones.length) };
+    },
+    truth: (round) => ({ ...common(round), image: round.spec.image, zones: round.spec.zones, answer: round.answer }),
+  },
 };
 
 const typeOf = (round) => TYPES[round.type || 'location'];
@@ -114,4 +146,4 @@ const typeOf = (round) => TYPES[round.type || 'location'];
 const publicRound = (round) => ({ ord: round.ord, question: round.question, type: round.type || 'location',
   ...(round.qphoto ? { qphoto: round.qphoto } : {}), ...typeOf(round).publicRound(round) });
 
-module.exports = { TYPES, typeOf, publicRound, optStr };
+module.exports = { TYPES, typeOf, publicRound, optStr, PHOTO_FILE };
