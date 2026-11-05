@@ -2,9 +2,13 @@
 // purpose. Geometry lives in ./geo.
 const { haversineKm, nearestOnGeometry } = require('./geo');
 
-// Full points within the round's tolerance radius, smooth decay beyond it.
-function points(km, radius = 25) {
-  return km <= radius ? 100 : Math.round(100 * Math.exp(-(km - radius) / 500));
+// Full points within the round's tolerance radius. Beyond it: with `maxkm`, an even
+// drop to 0 at maxkm km (the builder's "no points beyond"); without, the original
+// smooth decay, so older rounds score exactly as before.
+function points(km, radius = 25, maxkm) {
+  if (km <= radius) return 100;
+  if (maxkm != null) return km >= maxkm ? 0 : Math.round(100 * (maxkm - km) / (maxkm - radius));
+  return Math.round(100 * Math.exp(-(km - radius) / 500));
 }
 
 // Distance from a guess to a round's answer: its shape, or its point. km has one decimal.

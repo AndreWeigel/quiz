@@ -29,3 +29,18 @@ test('distanceToRound: point round → haversine to the point; shape round → n
   const inside = distanceToRound(5, 5, { lat: 5, lng: 5, geometry: { type: 'Polygon', coordinates: [[[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]]] } });
   assert.deepEqual(inside, { km: 0, nearest: { lat: 5, lng: 5 } });
 });
+
+test('points: maxkm drops evenly from the radius to 0, and round-trips through the type', () => {
+  assert.equal(points(25, 25, 3025), 100);
+  assert.equal(points(1525, 25, 3025), 50);
+  assert.equal(points(3025, 25, 3025), 0);
+  assert.equal(points(9000, 25, 3025), 0);
+  const { TYPES } = require('../src/types');
+  const loc = TYPES.location;
+  assert.equal(loc.clean({ lat: 35.7, lng: 139.7, maxkm: 3000 }).maxkm, 3000);
+  assert.ok(loc.clean({ lat: 35.7, lng: 139.7, radius: 50, maxkm: 40 }).error, 'maxkm inside the radius is rejected');
+  // Tokyo round: a pin in Beijing (~2100 km) still scores, one in New York (~10,850 km) doesn't.
+  const round = { lat: 35.68, lng: 139.69, maxkm: 5000 };
+  assert.ok(loc.score(round, { lat: 39.9, lng: 116.4 }).points > 50);
+  assert.equal(loc.score(round, { lat: 40.71, lng: -74 }).points, 0);
+});

@@ -24,13 +24,18 @@ const TYPES = {
       if (!validCoords(lat, lng)) return { error: 'invalid round' };
       // radius: optional "full points within this many km" tolerance (trivia rounds)
       if (r.radius != null && !(Number.isFinite(r.radius) && r.radius > 0 && r.radius <= 10000)) return { error: 'invalid round' };
-      return { lat, lng, city: optStr(r.city), country: optStr(r.country), radius: r.radius ?? undefined, geometry: geometry || undefined };
+      // maxkm: optional "no points beyond this many km"; must sit past the full-points radius
+      if (r.maxkm != null && !(Number.isFinite(r.maxkm) && r.maxkm > (r.radius ?? 25) && r.maxkm <= 20040)) {
+        return { error: '"no points beyond" must be more than the full-points radius (and at most 20,040 km)' };
+      }
+      return { lat, lng, city: optStr(r.city), country: optStr(r.country), radius: r.radius ?? undefined,
+        maxkm: r.maxkm ?? undefined, geometry: geometry || undefined };
     },
     publicRound: () => ({}),
     cleanGuess: (_round, b) => (validCoords(b.lat, b.lng) ? { lat: b.lat, lng: b.lng } : null),
     score(round, g) {
       const { km, nearest } = distanceToRound(g.lat, g.lng, round);
-      return { km, nearest, points: points(km, round.radius ?? undefined) };
+      return { km, nearest, points: points(km, round.radius ?? undefined, round.maxkm ?? undefined) };
     },
     truth: (round) => ({
       ...common(round), lat: round.lat, lng: round.lng, city: round.city, country: round.country,

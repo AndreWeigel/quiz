@@ -10,32 +10,53 @@
 <style>
   :root {
     color-scheme: dark;
-    --bg: #070b1c; --bg-2: #0a1030; --panel: rgba(16,22,52,.9); --border: rgba(130,155,255,.16);
-    --text: #eaf0ff; --muted: #a3aed8; --cyan: #22d3ee; --red: #f0616a; --amber: #ffb020; --ink: #1a1205;
+    --bg: #070b1c; --bg-2: #0a1030; --panel: rgba(16,22,52,.9); --panel-2: rgba(10,14,34,.72); --border: rgba(130,155,255,.16);
+    --text: #eaf0ff; --muted: #a3aed8; --cyan: #22d3ee; --red: #f0616a; --amber: #ffb020; --green: #4ade80; --ink: #1a1205;
     --display: "Space Grotesk", Inter, sans-serif;
     --body: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; padding: 40px 20px 80px; color: var(--text);
-    font: 15px/1.5 var(--body); background: radial-gradient(1200px 800px at 50% -5%, var(--bg-2), var(--bg) 70%); }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  a.back { color: var(--muted); text-decoration: none; font-family: var(--mono); font-size: .95rem; }
-  a.back:hover { color: var(--cyan); }
-  h1 { font: 700 1.8rem/1.1 var(--display); letter-spacing: -.01em; margin: 10px 0 6px; }
+  [hidden] { display: none !important; }
+  body { margin: 0; min-height: 100vh; color: var(--text);
+    font: 15px/1.5 var(--body); background: radial-gradient(1200px 800px at 50% -5%, var(--bg-2), var(--bg) 70%) fixed; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; }
+  .wrap.narrow { max-width: 820px; }
+  h1 { font: 700 1.8rem/1.1 var(--display); letter-spacing: -.01em; margin: 32px 0 6px; }
   p.hint { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
-  .bar { display: flex; align-items: center; gap: 12px; margin: 0 0 20px; position: sticky; top: 0;
-    background: linear-gradient(var(--bg-2), rgba(10,16,48,.6)); padding: 10px 0; z-index: 5; }
-  button { font-family: var(--mono); cursor: pointer; border-radius: 999px; border: 1px solid var(--border);
-    background: rgba(10,14,34,.72); color: var(--text); padding: 8px 16px; font-size: .9rem; transition: background .15s, border-color .15s; }
-  button:hover { border-color: rgba(34,211,238,.4); }
-  button.primary { background: var(--amber); border-color: var(--amber); color: var(--ink); font-weight: 700; }
-  button.primary:disabled { opacity: .45; cursor: default; }
-  button.sm { padding: 4px 10px; font-size: .8rem; min-width: 36px; min-height: 36px; }
-  #status { font-family: var(--mono); font-size: .85rem; color: var(--muted); margin-left: auto; }
+  :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
+  button { font-family: var(--mono); cursor: pointer; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--panel-2); color: var(--text); padding: 8px 16px; font-size: .88rem; min-height: 40px;
+    transition: background .15s, border-color .15s, color .15s; }
+  button:hover:not(:disabled) { border-color: rgba(34,211,238,.45); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--amber); border-color: var(--amber); color: var(--ink); font-weight: 700; }
+  button.sm { padding: 4px 12px; font-size: .8rem; min-width: 40px; min-height: 36px; }
+  button.icon { border: 0; background: none; color: var(--muted); padding: 0; min-width: 40px; min-height: 40px;
+    display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; }
+  button.icon:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,.05); }
+  button.icon.danger:hover:not(:disabled) { color: var(--red); }
+  svg { flex: none; }
+
+  /* top bar */
+  .bar { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 8;
+    margin: 0 -20px 20px; padding: 12px 20px; background: rgba(7,11,28,.82); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .bar .gt { flex: 1 1 120px; min-width: 0; font: 700 1.25rem var(--display); background: transparent; border: 1px solid transparent;
+    border-radius: 10px; padding: 4px 8px; color: var(--text); }
+  .bar .gt:hover { border-color: var(--border); }
+  .bar .gt:focus { outline: none; border-color: rgba(34,211,238,.45); background: var(--panel-2); }
+  #status { font: .8rem var(--mono); color: var(--muted); }
+  #status.warn { color: var(--amber); }
+  select { appearance: none; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); padding: 8px 30px 8px 12px; font: 600 .82rem var(--mono); min-height: 40px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: right 14px center, right 9px center; background-size: 5px 5px; background-repeat: no-repeat; }
+
+  /* games list */
   .game { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--panel);
-    border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 10px; }
+    border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
   .game .t { font: 700 1.05rem var(--display); flex: 1; min-width: 140px; }
   .game .meta { font: .75rem var(--mono); color: var(--muted); }
   .game .sessions { flex-basis: 100%; font: .75rem var(--mono); color: var(--muted); }
@@ -43,67 +64,109 @@
   .game .sessions .fin { opacity: .6; }
   .empty { color: var(--muted); font-style: italic; }
 
-  .title { font: 700 1.5rem var(--display); margin: 0 0 4px; cursor: text; }
-  .themepick { display: inline-flex; align-items: center; gap: 8px; font: .8rem var(--mono); color: var(--muted); margin: 0 0 14px; }
-  .themepick select, select.type { appearance: none; background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); padding: 6px 26px 6px 10px; font: 600 .8rem var(--mono);
-    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-    background-position: right 12px center, right 7px center; background-size: 5px 5px; background-repeat: no-repeat; }
-  .geo svg, button.sm svg { vertical-align: middle; }
-  .geo { display: inline-flex; }
-  .geo.ok { color: #4ade80; } .geo.no { color: var(--amber); }
-  .title:hover { color: var(--cyan); }
-  .share { font: .8rem var(--mono); color: var(--muted); margin: 0 0 16px; overflow-wrap: anywhere; }
-  .round { background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
-    padding: 12px 14px; margin-bottom: 12px; }
-  .round .head { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
-  .round .head .n { font: .75rem var(--mono); color: var(--cyan); flex: none; width: 26px; }
-  input[type=text], textarea { background: rgba(10,14,34,.72); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text); padding: 6px 8px; font: .82rem var(--mono); }
-  input[type=text]:focus, textarea:focus { outline: none; border-color: rgba(34,211,238,.4); }
-  .round .q { flex: 1; min-width: 0; font: 600 .95rem var(--body); }
-  .locrow { display: flex; gap: 6px; margin: 8px 0; position: relative; align-items: center; }
+  /* editor: round list + the selected round */
+  .editor { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; align-items: start; }
+  .editor > * { min-width: 0; } /* long round titles ellipsize instead of widening the page */
+  .side { position: sticky; top: 84px; max-height: calc(100vh - 104px); display: flex; flex-direction: column; gap: 10px; }
+  .side h2, .card h3 { font: 700 .72rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .side h2 { display: flex; justify-content: space-between; padding: 0 4px; }
+  .rlist { list-style: none; margin: 0; padding: 2px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .ri { display: flex; align-items: center; gap: 6px; min-height: 56px; padding: 6px 6px 6px 2px; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; position: relative;
+    transition: transform .18s ease, border-color .15s, background .15s; }
+  .ri:hover { border-color: rgba(34,211,238,.3); }
+  .ri.sel { border-color: var(--cyan); background: rgba(34,211,238,.09); }
+  .ri.dragging { transition: none; z-index: 3; box-shadow: 0 12px 32px rgba(0,0,0,.55); cursor: grabbing; }
+  .ri .handle { cursor: grab; touch-action: none; color: var(--muted); min-width: 30px; }
+  .ri .n { font: 700 .75rem var(--mono); color: var(--cyan); width: 22px; flex: none; }
+  .ri .tico { color: var(--muted); display: inline-flex; }
+  .ri .qt { flex: 1; min-width: 0; font: 500 .86rem/1.3 var(--body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ri .qt.none { color: var(--muted); font-style: italic; }
+  .ri .st { display: inline-flex; }
+  .ri .st.ok { color: var(--green); } .ri .st.no { color: var(--amber); }
+  .ri .del { opacity: 0; }
+  .ri:hover .del, .ri.sel .del, .ri .del:focus-visible { opacity: 1; }
+  @media (hover: none) { .ri .del { opacity: 1; } }
+  .addbox { border: 1px dashed var(--border); border-radius: 12px; padding: 10px; }
+  .addbox .lbl { font: .75rem var(--mono); color: var(--muted); margin: 0 0 8px 2px; }
+  .addtypes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .addtypes button { border-radius: 10px; display: flex; align-items: center; gap: 8px; justify-content: flex-start; font-size: .78rem; padding: 6px 10px; }
+  .addtypes button svg { color: var(--cyan); }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px 22px; }
+  .card + .card { margin-top: 14px; }
+  .card h3 { margin-bottom: 12px; }
+  .rhead { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .rhead .rn { font: 700 1.1rem var(--display); }
+  .rhead .sp { flex: 1; }
+  .f { display: flex; flex-direction: column; gap: 5px; margin: 0 0 12px; font: 600 .78rem var(--body); color: var(--muted); min-width: 0; }
+  .f:last-child { margin-bottom: 0; }
+  .f small { font: .72rem var(--mono); color: var(--muted); font-weight: 400; opacity: .85; }
+  input[type=text], textarea { width: 100%; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); padding: 10px 12px; font: 400 .9rem var(--body); min-height: 44px; }
+  input[type=text]:focus, textarea:focus { outline: none; border-color: rgba(34,211,238,.5); }
+  input:disabled { opacity: .55; }
+  input.qin { font: 600 1.05rem var(--body); }
+  .row { display: flex; gap: 10px; align-items: flex-end; }
+  .row > .f { flex: 1; }
+  .locrow { display: flex; gap: 8px; align-items: center; position: relative; margin-bottom: 12px; }
   .locrow .city { flex: 3; min-width: 0; }
-  .locrow .coords { flex: 2; min-width: 0; }
-  .locrow .geo { flex: none; font: .78rem var(--mono); color: var(--muted); }
-  .sug { position: absolute; top: 100%; left: 0; right: 0; z-index: 6; display: flex; flex-direction: column;
+  .locrow .coords { flex: 2; min-width: 0; font-family: var(--mono); font-size: .82rem; }
+  .geo { display: inline-flex; } .geo.ok { color: var(--green); } .geo.no { color: var(--amber); }
+  .sug { position: absolute; top: 100%; left: 0; right: 0; z-index: 6; display: flex; flex-direction: column; margin-top: 4px;
     background: var(--bg-2); border: 1px solid rgba(34,211,238,.4); border-radius: 10px; overflow: hidden; }
-  .sug button { border: 0; border-radius: 0; text-align: left; font-size: .8rem; padding: 7px 10px; }
+  .sug button { border: 0; border-radius: 0; text-align: left; font-size: .8rem; padding: 9px 12px; }
   .sug button:hover { background: rgba(34,211,238,.12); color: var(--cyan); }
-  .ansrow { display: flex; gap: 6px; margin: 8px 0; align-items: center; }
-  .ansrow .answer { flex: 1; min-width: 0; }
-  .ansrow .radius { width: 64px; text-align: right; }
-  .ansrow .unit { font: .78rem var(--mono); color: var(--muted); }
-  details.shape { margin: 8px 0; border: 1px dashed var(--border); border-radius: 8px; padding: 6px 10px; }
-  details.shape summary { cursor: pointer; font: .78rem var(--mono); color: var(--muted); }
-  details.shape textarea { width: 100%; min-height: 64px; resize: vertical; font: .75rem var(--mono); margin-top: 6px; }
-  details.shape .st { font: .75rem var(--mono); color: var(--muted); margin: 4px 0; }
-  details.shape .st.ok { color: var(--cyan); }
-  details.shape .st.err { color: var(--red); }
-  details.shape .links { font: .75rem var(--mono); color: var(--muted); margin: 4px 0; }
+  details.shape { border: 1px dashed var(--border); border-radius: 10px; padding: 8px 12px; }
+  details.shape summary { cursor: pointer; font: .78rem var(--mono); color: var(--muted); min-height: 28px; display: flex; align-items: center; }
+  details.shape textarea { min-height: 64px; resize: vertical; font: .75rem var(--mono); margin-top: 6px; }
+  details.shape .stx { font: .75rem var(--mono); color: var(--muted); margin: 6px 0; }
+  details.shape .stx.ok { color: var(--cyan); } details.shape .stx.err { color: var(--red); }
+  details.shape .links { font: .75rem var(--mono); color: var(--muted); margin: 4px 0 8px; }
   details.shape .links a { color: var(--cyan); text-decoration: none; }
-  .phrow { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
-  .phrow img { width: 96px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
-  .addph { display: inline-flex; align-items: center; justify-content: center; width: 96px; height: 72px; cursor: pointer;
-    border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font: .78rem var(--mono); }
-  .addph:hover { border-color: rgba(34,211,238,.4); color: var(--cyan); }
-  .story { width: 100%; resize: vertical; min-height: 34px; font: .82rem/1.45 var(--body); }
-  select.type { background: rgba(10,14,34,.72); border: 1px solid var(--border); border-radius: 8px; color: var(--cyan);
-    padding: 6px 4px; font: .78rem var(--mono); flex: none; }
-  .accept { width: 100%; min-height: 56px; resize: vertical; margin: 8px 0 2px; }
-  .tnote { font: .72rem var(--mono); color: var(--muted); margin-bottom: 6px; }
-  .opt { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
-  .opt input[type=text] { flex: 1; min-width: 0; }
-  .opt input[type=radio] { accent-color: var(--cyan); width: 18px; height: 18px; flex: none; margin: 0; }
-  .numrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-  .numrow label { display: flex; flex-direction: column; gap: 3px; font: .72rem var(--mono); color: var(--muted); flex: 1 1 120px; min-width: 0; }
-  .numrow input { width: 100%; }
-  .del { border: 0; background: none; color: var(--muted); font-size: 1.05rem; line-height: 1;
-    min-width: 36px; min-height: 36px; }
-  .del:hover { color: var(--red); }
+  .tnote { font: .74rem var(--mono); color: var(--muted); margin-top: 6px; }
+  .accept { min-height: 96px; resize: vertical; }
+  .opt { display: flex; gap: 8px; align-items: center; margin: 0 0 8px; }
+  .opt input[type=radio] { accent-color: var(--green); width: 20px; height: 20px; flex: none; margin: 0 6px; cursor: pointer; }
+  .opt.right input[type=text] { border-color: rgba(74,222,128,.5); }
+  .numrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+
+  /* scoring */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { border-radius: 10px; padding: 6px 12px; text-align: left; line-height: 1.25; font-size: .78rem; }
+  .chips button small { display: block; color: var(--muted); font-size: .68rem; }
+  .chips button.on { border-color: var(--cyan); background: rgba(34,211,238,.12); color: var(--cyan); }
+  .kmin { display: inline-flex; align-items: center; gap: 6px; font: .78rem var(--mono); color: var(--muted); }
+  .kmin input { width: 96px; text-align: right; font-family: var(--mono); }
+  .preview { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 14px; align-items: end; }
+  .preview .c { display: flex; flex-direction: column; align-items: center; gap: 4px; font: .7rem var(--mono); color: var(--muted); }
+  .preview .b { width: 100%; height: 56px; background: rgba(255,255,255,.04); border-radius: 6px; display: flex; align-items: flex-end; overflow: hidden; }
+  .preview .b i { display: block; width: 100%; background: linear-gradient(var(--cyan), rgba(34,211,238,.35)); border-radius: 6px 6px 0 0; transition: height .2s ease; }
+  .preview .p { font-weight: 700; color: var(--text); }
+  .preview .p.zero { color: var(--muted); }
+  .problem { margin-top: 14px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,176,32,.35);
+    background: rgba(255,176,32,.08); color: var(--amber); font: .8rem var(--mono); display: flex; gap: 8px; align-items: center; }
+
+  .phrow { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .phrow img { width: 120px; height: 84px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }
+  .addph { display: inline-flex; align-items: center; justify-content: center; width: 120px; height: 84px; cursor: pointer;
+    border: 1px dashed var(--border); border-radius: 10px; color: var(--muted); font: .78rem var(--mono); }
+  .addph:hover, .addph:focus-within { border-color: rgba(34,211,238,.45); color: var(--cyan); }
+  .story { resize: vertical; min-height: 72px; line-height: 1.45; }
+  .blank { text-align: center; padding: 48px 22px; color: var(--muted); }
+  .blank .addtypes { max-width: 380px; margin: 16px auto 0; }
+
+  @media (max-width: 860px) {
+    .editor { grid-template-columns: 1fr; }
+    .side { position: static; max-height: none; }
+    .rlist { max-height: 46vh; }
+    .locrow { flex-wrap: wrap; } .locrow .city { flex: 1 1 100%; }
+    .card { padding: 16px; }
+    .preview { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) { .ri, .preview .b i { transition: none; } }
 
   #mapmodal { position: fixed; inset: 0; z-index: 20; background: var(--bg); }
-  #mapmodal[hidden] { display: none; }
   #pickmap { position: absolute; inset: 0; }
   .maphint { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: var(--panel);
     border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; font: .8rem var(--mono);
@@ -114,15 +177,18 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Game builder</h1>
-  <p class="hint">Create a game, add rounds, share the link on WhatsApp. The link is the invitation —
-    anyone who has it can play.</p>
+<div class="wrap narrow" id="wrap">
+  <div id="intro">
+    <h1>Game builder</h1>
+    <p class="hint">Create a game, add rounds, share the link on WhatsApp. The link is the invitation —
+      anyone who has it can play.</p>
+  </div>
   <div class="bar">
     <button id="new">+ New game</button>
     <button id="back" hidden>← Games</button>
+    <input type="text" class="gt" id="gtitle" aria-label="Game title" maxlength="120" hidden>
+    <span id="status" role="status"></span>
     <button id="save" class="primary" hidden disabled>Save</button>
-    <span id="status"></span>
   </div>
   <div id="main"></div>
 </div>
@@ -136,9 +202,10 @@
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = (id) => document.getElementById(id);
 let games = [];
-let editing = null; // { game, rounds, dirty }
+let editing = null; // { game, rounds, sessions, dirty, sel }
 
 const fmtCoords = (r) => Number.isFinite(r.lat) ? `${r.lat}, ${r.lng}` : '';
+const fmtKm = (n) => Number(n).toLocaleString('en');
 // Client-side read of pasted GeoJSON: enough to label it and place the anchor. The server re-validates.
 const KINDS = { Point: 'point', MultiPoint: 'point', LineString: 'line', MultiLineString: 'line', Polygon: 'area', MultiPolygon: 'area' };
 const ERR_180 = 'shapes that cross the 180° meridian are not supported';
@@ -172,58 +239,161 @@ function parseShape(text) {
 const shapeLabelOf = (g, n) => `${g.type}${g.type.startsWith('Multi') ? ` · ${g.coordinates.length.toLocaleString()} parts` : ''} · ${n.toLocaleString()} point${n === 1 ? '' : 's'}`;
 const shapeLabel = (r) => (r.shapeLabel || (r.geometry ? shapeLabelOf(r.geometry, countPositions(r.geometry)) : ''));
 function countPositions(g) { let n = 0; const walk = (c) => { if (!Array.isArray(c)) return; if (typeof c[0] === 'number') n++; else c.forEach(walk); }; walk(g.coordinates); return n; }
-const setStatus = (t) => { $('status').textContent = t; };
+const setStatus = (t, warn = false) => { $('status').textContent = t; $('status').classList.toggle('warn', warn); };
 
-// Question types (server: src/types.js). Location rounds keep today's fields.
+// Question types (server: src/types.js).
 const TYPE_LABELS = { location: 'Location', text: 'Typed answer', choice: 'Multiple choice', number: 'Number' };
 const THEMES = { gameshow: 'Game show', railway: 'Railway' };
+const svg = (d, w = 2) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICON = {
-  map: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>',
-  ok: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>',
-  warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2zM12 10v5M12 18h.01"/></svg>',
+  map: svg('<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/>'),
+  ok: svg('<path d="M5 12l5 5L20 7"/>', 2.5),
+  warn: svg('<path d="M12 3l10 18H2zM12 10v5M12 18h.01"/>'),
+  grip: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
+  trash: svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
+  x: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  location: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'),
+  text: svg('<path d="M4 7V5h16v2M12 5v14M9 19h6"/>'),
+  choice: svg('<path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="5" cy="18" r="1.5"/>'),
+  number: svg('<path d="M5 9h14M5 15h14M10 4L8 20M16 4l-2 16"/>'),
 };
-const Q_HINT = { location: 'Question — e.g. Where was Daniel born?', text: 'Question — e.g. Which tunnel is the longest in the world?',
-  choice: 'Question — e.g. Which station has the most platforms?', number: 'Question — e.g. How long is the Gotthard Base Tunnel?' };
+const Q_HINT = { location: 'e.g. Where was Daniel born?', text: 'e.g. Which tunnel is the longest in the world?',
+  choice: 'e.g. Which station has the most platforms?', number: 'e.g. How long is the Gotthard Base Tunnel?' };
 const NEW_SPEC = { text: () => ({ accept: [] }), choice: () => ({ options: ['', ''], correct: 0 }), number: () => ({}) };
 const typeOf = (r) => r.type || 'location';
 const defaultHalve = (v) => (Number.isFinite(v) ? +Math.max(Math.abs(v) / 10, 1).toPrecision(3) : '');
 // Anything typed into the type-specific fields, i.e. what switching type would throw away.
 const typeFilled = (r) => Number.isFinite(r.lat) || !!r.geometry
   || (r.spec != null && JSON.stringify(r.spec) !== JSON.stringify(NEW_SPEC[typeOf(r)]?.()));
+
+// Location scoring — mirror of points() in src/scoring.js, for the builder's preview only.
+const locPoints = (km, radius = 25, maxkm) => (km <= radius ? 100
+  : maxkm != null ? (km >= maxkm ? 0 : Math.round(100 * (maxkm - km) / (maxkm - radius)))
+  : Math.round(100 * Math.exp(-(km - radius) / 500)));
+const FALLOFF = [
+  { v: null, label: 'Steep', sub: 'default' },
+  { v: 1000, label: 'Region', sub: '0 pts past 1,000 km' },
+  { v: 3000, label: 'Neighbours', sub: '0 pts past 3,000 km' },
+  { v: 6000, label: 'Continent', sub: '0 pts past 6,000 km' },
+];
+const PREVIEW_KM = [100, 500, 1000, 2500, 5000, 10000];
+
+// What still keeps a round from saving ('' = ready).
+function problem(r) {
+  if (!r.question.trim()) return 'needs a question';
+  const s = r.spec || {};
+  switch (typeOf(r)) {
+    case 'text': return s.accept && s.accept.length ? '' : 'needs at least one accepted answer';
+    case 'choice': return s.options.length >= 2 && s.options.every((o) => o.trim()) ? '' : 'needs 2–6 filled-in options';
+    case 'number':
+      if (!Number.isFinite(s.value)) return 'needs a number as its answer';
+      return ['tolerance', 'halve'].every((k) => s[k] == null || (Number.isFinite(s[k]) && (k === 'halve' ? s[k] > 0 : s[k] >= 0))) ? '' : 'has a margin that is not a number';
+    default:
+      if (r.shapeErr) return 'has a shape error — fix or clear the shape';
+      if (!(Number.isFinite(r.lat) || r.geometry)) return 'needs a location';
+      if (r.maxkm != null && !(r.maxkm > (r.radius ?? 25))) return '“no points beyond” must be more than the full-points radius';
+      return '';
+  }
+}
+
 function typeFields(r, i) {
   const s = r.spec || {};
   if (typeOf(r) === 'text') return `
-    <textarea class="accept" data-accept="${i}" aria-label="Accepted answers, one per line"
-      placeholder="Accepted answers — one per line, e.g.&#10;Gotthard Base Tunnel&#10;Gotthard">${esc((s.accept || []).join('\n'))}</textarea>
+    <label class="f">Accepted answers <small>one per line</small>
+      <textarea class="accept" data-accept="${i}" placeholder="Gotthard Base Tunnel&#10;Gotthard">${esc((s.accept || []).join('\n'))}</textarea></label>
     <div class="tnote">Case, accents, punctuation and small typos are forgiven. Answers with digits must match exactly.</div>`;
   if (typeOf(r) === 'choice') {
     const opts = s.options || [];
-    return `<div class="opts">${opts.map((o, j) => `
-      <div class="opt">
-        <input type="radio" name="correct${i}" data-correct="${i}:${j}" ${s.correct === j ? 'checked' : ''} aria-label="Mark option ${j + 1} correct" title="The correct answer">
+    return `<div class="f">Options <small>tick the right one — right = 100 pts, wrong = 0</small></div>
+      ${opts.map((o, j) => `
+      <div class="opt ${s.correct === j ? 'right' : ''}">
+        <input type="radio" name="correct${i}" data-correct="${i}:${j}" ${s.correct === j ? 'checked' : ''} aria-label="Mark option ${j + 1} correct">
         <input type="text" data-opt="${i}:${j}" value="${esc(o)}" placeholder="Option ${j + 1}" aria-label="Option ${j + 1}">
-        <button class="del" data-delopt="${i}:${j}" ${opts.length <= 2 ? 'disabled' : ''} title="Remove option" aria-label="Remove option ${j + 1}">✕</button>
+        <button class="icon danger" data-delopt="${i}:${j}" ${opts.length <= 2 ? 'disabled' : ''} aria-label="Remove option ${j + 1}">${ICON.x}</button>
       </div>`).join('')}
-      ${opts.length < 6 ? `<button class="sm" data-addopt="${i}">+ option</button>` : ''}
-      <div class="tnote">Tick the correct option. Right = 100 pts, wrong = 0.</div></div>`;
+      ${opts.length < 6 ? `<button class="sm" data-addopt="${i}">+ option</button>` : ''}`;
   }
-  const num = (k, label, ph, extra = '') => `<label>${label}<input type="text" inputmode="decimal" data-num="${i}:${k}"
+  const num = (k, label, ph, extra = '') => `<label class="f">${label}<input type="text" inputmode="decimal" data-num="${i}:${k}"
     value="${esc(s[k] ?? '')}" placeholder="${esc(ph)}" ${extra}></label>`;
   return `<div class="numrow">
       ${num('value', 'Answer', 'e.g. 57')}
-      <label>Unit (optional)<input type="text" data-num="${i}:unit" value="${esc(s.unit ?? '')}" placeholder="e.g. km" maxlength="20"></label>
+      <label class="f">Unit <small>optional</small><input type="text" data-num="${i}:unit" value="${esc(s.unit ?? '')}" placeholder="e.g. km" maxlength="20"></label>
       ${num('tolerance', 'Full points within ±', '0')}
       ${num('halve', 'Points halve every ±', defaultHalve(s.value) || '10 % of answer', 'title="Leave empty for 10 % of the answer; set it for years (e.g. 10)"')}
     </div>`;
 }
 
+function locationFields(r, i) {
+  return `<div class="f">Where is it?</div>
+    <div class="locrow">
+      <input type="text" class="city" data-city="${i}" placeholder="City — type, then pick from the list" aria-label="City"
+        value="${esc([r.city, r.country].filter(Boolean).join(', '))}" ${r.geometry ? 'disabled' : ''}>
+      <input type="text" class="coords" data-coords="${i}" placeholder="or lat, lng" aria-label="Coordinates (lat, lng)" value="${esc(fmtCoords(r))}" ${r.geometry ? 'disabled title="Anchor set from the shape"' : ''}>
+      <button class="sm" data-mappick="${i}" title="${r.geometry ? 'Preview the shape on a map' : 'Pick the spot on a map'}" aria-label="Open the map">${ICON.map}</button>
+      ${Number.isFinite(r.lat) ? `<span class="geo ok" title="Location set">${ICON.ok}</span>` : `<span class="geo no" title="No location yet">${ICON.warn}</span>`}
+    </div>
+    <details class="shape" ${r.geometry ? 'open' : ''}>
+      <summary>Shape (line or area) — optional${r.geometry ? ` · ${esc(shapeLabel(r))}` : ''}</summary>
+      <textarea data-shape="${i}" aria-label="Shape GeoJSON" placeholder='Paste GeoJSON here — a line or an area, e.g. {"type":"LineString","coordinates":[[lng,lat],[lng,lat]]}'>${esc(r.shapeText ?? (r.geometry ? JSON.stringify(r.geometry) : ''))}</textarea>
+      <div class="stx ${r.shapeErr ? 'err' : r.geometry ? 'ok' : ''}">${esc(r.shapeErr || (r.geometry ? shapeLabel(r) + ' · anchor set to its centre' : 'No shape — this round is a point'))}</div>
+      <div class="links">Draw one at <a href="https://geojson.io" target="_blank" rel="noopener">geojson.io</a> ·
+        export from OpenStreetMap at <a href="https://overpass-turbo.eu" target="_blank" rel="noopener">overpass-turbo.eu</a> ·
+        simplify big files at <a href="https://mapshaper.org" target="_blank" rel="noopener">mapshaper.org</a></div>
+      ${r.geometry ? `<button class="sm" data-mappick="${i}">Preview</button> <button class="sm" data-shapeclear="${i}">Clear shape</button>` : ''}
+    </details>`;
+}
+
+const previewHTML = (r) => PREVIEW_KM.map((km) => {
+  const p = locPoints(km, r.radius ?? 25, r.maxkm ?? undefined);
+  return `<div class="c"><span class="p ${p ? '' : 'zero'}">${p}</span><span class="b"><i style="height:${p}%"></i></span>${fmtKm(km)} km</div>`;
+}).join('');
+function scoringFields(r, i) {
+  const custom = r.maxkm != null && !FALLOFF.some((f) => f.v === r.maxkm);
+  return `<div class="card"><h3>Scoring</h3>
+    <div class="row">
+      <label class="f" style="flex:0 0 auto">Full points within
+        <span class="kmin"><input type="text" inputmode="decimal" data-radius="${i}" value="${esc(r.radius ?? '')}" placeholder="25" aria-label="Full points within, km"> km</span></label>
+    </div>
+    <div class="f">How fast points drop off further away</div>
+    <div class="chips" role="group" aria-label="Point drop-off">
+      ${FALLOFF.map((f) => `<button type="button" data-preset="${i}:${f.v ?? ''}" class="${(r.maxkm ?? null) === f.v ? 'on' : ''}" aria-pressed="${(r.maxkm ?? null) === f.v}">${f.label}<small>${f.sub}</small></button>`).join('')}
+      <span class="kmin">or 0 pts past <input type="text" inputmode="decimal" data-maxkm="${i}" value="${custom ? esc(r.maxkm) : ''}" placeholder="km" aria-label="No points beyond, km"> km</span>
+    </div>
+    <div class="preview" id="preview" aria-label="Points a guess gets, by distance">${previewHTML(r)}</div>
+  </div>`;
+}
+
+const sideItem = (r, i) => {
+  const p = problem(r);
+  return `<li class="ri ${i === editing.sel ? 'sel' : ''}" data-sel="${i}" data-i="${i}">
+    <button class="icon handle" data-handle="${i}" aria-label="Move round ${i + 1} — drag, or use the arrow keys">${ICON.grip}</button>
+    <span class="n">${i + 1}</span>
+    <span class="tico" title="${TYPE_LABELS[typeOf(r)]}">${ICON[typeOf(r)]}</span>
+    <span class="qt ${r.question.trim() ? '' : 'none'}">${esc(r.question.trim() || 'Untitled round')}</span>
+    <span class="st ${p ? 'no' : 'ok'}" title="${esc(p ? 'Round ' + p : 'Ready')}">${p ? ICON.warn : ICON.ok}</span>
+    <button class="icon danger del" data-delround="${i}" aria-label="Delete round ${i + 1}">${ICON.trash}</button>
+  </li>`;
+};
+const addTypes = () => `<div class="addtypes">${Object.entries(TYPE_LABELS).map(([t, l]) =>
+  `<button data-add="${t}">${ICON[t]}${l}</button>`).join('')}</div>`;
+const renderSide = () => { $('rlist').innerHTML = editing.rounds.map(sideItem).join(''); $('rcount').textContent = editing.rounds.length; };
+
 function render() {
-  $('back').hidden = $('save').hidden = !editing;
-  $('new').hidden = !!editing;
+  $('back').hidden = $('save').hidden = $('gtitle').hidden = !editing;
+  $('new').hidden = $('intro').hidden = !!editing;
+  $('wrap').classList.toggle('narrow', !editing);
   if (!editing) { renderList(); return; }
   $('save').disabled = !editing.dirty;
+  if ($('gtitle') !== document.activeElement) $('gtitle').value = editing.game.title;
   setStatus(editing.dirty ? 'Unsaved changes' : '');
   renderEditor();
+}
+// A field edit that changes nothing else on screen: no full re-render, so focus and Tab order survive.
+function touched() {
+  editing.dirty = true;
+  $('save').disabled = false;
+  setStatus('Unsaved changes');
+  renderSide();
 }
 
 function renderList() {
@@ -235,7 +405,7 @@ function renderList() {
       <button class="sm" data-copy="${esc(g.slug)}">Copy link</button>
       <button class="sm" data-live="${g.id}" ${g.rounds ? '' : 'disabled title="Add rounds first"'}>Go live</button>
       <button class="sm" data-edit="${g.id}">Edit</button>
-      <button class="del" data-del="${g.id}" title="Delete game" aria-label="Delete game">✕</button>
+      <button class="icon danger" data-del="${g.id}" aria-label="Delete game">${ICON.trash}</button>
       ${(g.sessions || []).length ? `<div class="sessions">${g.sessions.map((s) => `
         <span class="${s.state === 'finished' ? 'fin' : ''}">${s.state === 'finished' ? 'finished' : 'LIVE · ' + esc(s.state)} ·
         ${s.players} player${s.players === 1 ? '' : 's'} · ${esc(s.created_at.slice(0, 10))} ·
@@ -246,54 +416,53 @@ function renderList() {
 
 function renderEditor() {
   const { game, rounds } = editing;
-  $('main').innerHTML = `
-    <div class="title" id="rename" title="Click to rename">${esc(game.title)}</div>
-    <label class="themepick">Theme <select id="theme" aria-label="Theme">${Object.entries(THEMES).map(([v, l]) =>
-      `<option value="${v}" ${(game.theme || 'gameshow') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-    <p class="share">Share link: ${esc(location.origin)}/${esc(game.slug)}
-      <button class="sm" data-copy="${esc(game.slug)}">Copy</button></p>
-    ${rounds.map((r, i) => `
-    <div class="round">
-      <div class="head">
-        <span class="n">#${i + 1}</span>
-        <select class="type" data-type="${i}" aria-label="Question type">${Object.entries(TYPE_LABELS).map(([v, l]) =>
-          `<option value="${v}" ${typeOf(r) === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
-        <input type="text" class="q" data-q="${i}" placeholder="${esc(Q_HINT[typeOf(r)])}" value="${esc(r.question)}">
-        <button class="sm" data-up="${i}" aria-label="Move round up" ${i === 0 ? 'disabled' : ''}>↑</button>
-        <button class="sm" data-down="${i}" aria-label="Move round down" ${i === rounds.length - 1 ? 'disabled' : ''}>↓</button>
-        <button class="del" data-delround="${i}" title="Remove round" aria-label="Remove round">✕</button>
+  editing.sel = Math.min(Math.max(editing.sel ?? 0, 0), rounds.length - 1);
+  const i = editing.sel, r = rounds[i];
+  const p = r ? problem(r) : '';
+  $('main').innerHTML = `<div class="editor">
+    <aside class="side">
+      <h2><span>Rounds</span><span id="rcount"></span></h2>
+      <ol class="rlist" id="rlist" aria-label="Rounds"></ol>
+      <div class="addbox"><div class="lbl">+ Add a round</div>${addTypes()}</div>
+      <div class="card" style="padding:14px 16px">
+        <label class="f">Theme <select id="theme">${Object.entries(THEMES).map(([v, l]) =>
+          `<option value="${v}" ${(game.theme || 'gameshow') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <div class="f">Share link <small style="overflow-wrap:anywhere">${esc(location.origin)}/${esc(game.slug)}</small></div>
+        <button class="sm" data-copy="${esc(game.slug)}">Copy link</button>
       </div>
-      ${typeOf(r) !== 'location' ? typeFields(r, i) : `<div class="locrow">
-        <input type="text" class="city" data-city="${i}" placeholder="City — type, then pick from the list"
-          value="${esc([r.city, r.country].filter(Boolean).join(', '))}" ${r.geometry ? 'disabled' : ''}>
-        <input type="text" class="coords" data-coords="${i}" placeholder="or lat, lng" value="${esc(fmtCoords(r))}" ${r.geometry ? 'disabled title="Anchor set from the shape"' : ''}>
-        <button class="sm" data-mappick="${i}" title="${r.geometry ? 'Preview the shape on a map' : 'Pick the spot on a map'}" aria-label="Open the map">${ICON.map}</button>
-        ${Number.isFinite(r.lat) ? `<span class="geo ok" title="Location set">${ICON.ok}</span>` : `<span class="geo no" title="No location yet">${ICON.warn}</span>`}
+    </aside>
+    <section id="ed">${!r ? `<div class="card blank"><h3>No rounds yet</h3><p>Pick a question type to add the first round.</p>${addTypes()}</div>` : `
+      <div class="card">
+        <div class="rhead">
+          <span class="rn">Round ${i + 1}<span style="color:var(--muted);font-weight:500"> / ${rounds.length}</span></span>
+          <span class="sp"></span>
+          <select data-type="${i}" aria-label="Question type">${Object.entries(TYPE_LABELS).map(([v, l]) =>
+            `<option value="${v}" ${typeOf(r) === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          <button class="icon danger" data-delround="${i}" aria-label="Delete this round">${ICON.trash}</button>
+        </div>
+        <label class="f">Question<input type="text" class="qin" data-q="${i}" placeholder="${esc(Q_HINT[typeOf(r)])}" value="${esc(r.question)}"></label>
+        ${typeOf(r) === 'location' ? locationFields(r, i) : typeFields(r, i)}
       </div>
-      <details class="shape" ${r.geometry ? 'open' : ''}>
-        <summary>Shape (line or area) — optional${r.geometry ? ` · ${esc(shapeLabel(r))}` : ''}</summary>
-        <textarea data-shape="${i}" placeholder='Paste GeoJSON here — a line or an area, e.g. {"type":"LineString","coordinates":[[lng,lat],[lng,lat]]}'>${esc(r.shapeText ?? (r.geometry ? JSON.stringify(r.geometry) : ''))}</textarea>
-        <div class="st ${r.shapeErr ? 'err' : r.geometry ? 'ok' : ''}">${esc(r.shapeErr || (r.geometry ? shapeLabel(r) + ' · anchor set to its centre' : 'No shape — this round is a point'))}</div>
-        <div class="links">Draw one at <a href="https://geojson.io" target="_blank" rel="noopener">geojson.io</a> ·
-          export from OpenStreetMap at <a href="https://overpass-turbo.eu" target="_blank" rel="noopener">overpass-turbo.eu</a> ·
-          simplify big files at <a href="https://mapshaper.org" target="_blank" rel="noopener">mapshaper.org</a></div>
-        ${r.geometry ? `<button class="sm" data-mappick="${i}">Preview</button> <button class="sm" data-shapeclear="${i}">Clear shape</button>` : ''}
-      </details>`}
-      <div class="ansrow">
-        <input type="text" class="answer" data-answer="${i}" value="${esc(r.answer || '')}" aria-label="Answer label for the reveal"
-          placeholder="${typeOf(r) === 'location' ? 'Answer label for the reveal (optional) — e.g. Tanggula, Qinghai–Tibet Railway, China'
-            : 'Answer label for the reveal (optional) — defaults to the right answer'}">
-        ${typeOf(r) === 'location' ? `<input type="text" inputmode="decimal" class="radius" data-radius="${i}" value="${esc(r.radius ?? '')}"
-          placeholder="±25" title="Full points within this many km of the pin" aria-label="Full-points radius in km">
-        <span class="unit">km</span>` : ''}
-      </div>
-      <div class="phrow">
-        ${r.photo ? `<img src="/uploads/${esc(r.photo)}" alt=""><button class="del" data-delphoto="${i}" title="Remove photo" aria-label="Remove photo">✕</button>`
-                  : `<label class="addph">+ photo<input type="file" accept="image/*" data-photo="${i}" hidden></label>`}
-      </div>
-      <textarea class="story" data-story="${i}" placeholder="The reveal story — shown after everyone guesses">${esc(r.story || '')}</textarea>
-    </div>`).join('')}
-    <button id="addround">+ Round</button>`;
+      ${typeOf(r) === 'location' ? scoringFields(r, i) : ''}
+      <div class="card"><h3>The reveal</h3>
+        <label class="f">Answer label <small>optional — ${typeOf(r) === 'location' ? 'e.g. Tanggula, Qinghai–Tibet Railway, China' : 'defaults to the right answer'}</small>
+          <input type="text" data-answer="${i}" value="${esc(r.answer || '')}"></label>
+        <div class="f">Photo <small>optional</small></div>
+        <div class="phrow">
+          ${r.photo ? `<img src="/uploads/${esc(r.photo)}" alt=""><button class="icon danger" data-delphoto="${i}" aria-label="Remove photo">${ICON.trash}</button>`
+                    : `<label class="addph">+ photo<input type="file" accept="image/*" data-photo="${i}" hidden></label>`}
+        </div>
+        <label class="f">Story <small>shown after everyone guesses</small>
+          <textarea class="story" data-story="${i}">${esc(r.story || '')}</textarea></label>
+        ${p ? `<div class="problem" id="problem">${ICON.warn}<span>This round ${esc(p)}.</span></div>` : ''}
+      </div>`}
+    </section></div>`;
+  renderSide();
+}
+// The "still needed" note under the selected round, kept current without a re-render.
+function refreshProblem() {
+  const r = editing.rounds[editing.sel], p = r ? problem(r) : '', box = $('problem');
+  if (box) { box.hidden = !p; box.querySelector('span').textContent = `This round ${p}.`; }
 }
 
 async function loadList() {
@@ -308,7 +477,7 @@ async function loadList() {
 async function openEditor(id) {
   const d = await (await fetch(`/api/admin/games/${id}`)).json();
   const { sessions } = await (await fetch(`/api/admin/games/${id}/sessions`)).json();
-  editing = { game: d.game, rounds: d.rounds, sessions, dirty: false };
+  editing = { game: d.game, rounds: d.rounds, sessions, dirty: false, sel: 0 };
   render();
 }
 
@@ -387,7 +556,73 @@ async function openMapPicker(i) {
 $('mapclose').addEventListener('click', () => { $('mapmodal').hidden = true; });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('mapmodal').hidden = true; });
 
+// ---- rounds: select, add, delete, reorder ----
 const main = $('main');
+function select(i) {
+  editing.sel = i;
+  render();
+  if (matchMedia('(max-width: 860px)').matches) $('ed').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function addRound(type) {
+  editing.rounds.push(type === 'location' ? { question: '', type, lat: NaN, lng: NaN } : { question: '', type, spec: NEW_SPEC[type]() });
+  editing.dirty = true;
+  select(editing.rounds.length - 1);
+  document.querySelector('[data-q]').focus();
+}
+function moveRound(from, to) {
+  const rs = editing.rounds;
+  if (from === to || to < 0 || to >= rs.length) return;
+  const sel = rs[editing.sel];
+  rs.splice(to, 0, rs.splice(from, 1)[0]);
+  editing.sel = rs.indexOf(sel); // the open round stays open
+  editing.dirty = true;
+  render();
+}
+// Drag by the grip: pointer events, so mouse, pen and touch all work. The list itself
+// still scrolls with a finger; only the grip has touch-action: none.
+// ponytail: no auto-scroll while dragging — with a list taller than the screen, drag in steps or use the arrow keys.
+main.addEventListener('pointerdown', (e) => {
+  const h = e.target.closest('[data-handle]');
+  if (!h || !editing || e.button > 0) return;
+  e.preventDefault();
+  const item = h.closest('.ri'), from = +h.dataset.handle;
+  const items = [...$('rlist').children], rects = items.map((x) => x.getBoundingClientRect());
+  const step = rects.length > 1 ? rects[1].top - rects[0].top : rects[0].height;
+  const startY = e.clientY, mid = rects[from].top + rects[from].height / 2;
+  let to = from;
+  h.setPointerCapture(e.pointerId);
+  item.classList.add('dragging');
+  const move = (ev) => {
+    const dy = ev.clientY - startY;
+    item.style.transform = `translateY(${dy}px)`;
+    to = rects.filter((r, k) => k !== from && r.top + r.height / 2 < mid + dy).length;
+    items.forEach((x, k) => {
+      if (k === from) return;
+      const shift = from < to && k > from && k <= to ? -step : to < from && k >= to && k < from ? step : 0;
+      x.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
+  };
+  const up = () => {
+    h.removeEventListener('pointermove', move);
+    h.removeEventListener('pointerup', up);
+    h.removeEventListener('pointercancel', up);
+    items.forEach((x) => { x.style.transform = ''; });
+    item.classList.remove('dragging');
+    if (to !== from) moveRound(from, to);
+  };
+  h.addEventListener('pointermove', move);
+  h.addEventListener('pointerup', up);
+  h.addEventListener('pointercancel', up);
+});
+main.addEventListener('keydown', (e) => {
+  const h = e.target.closest('[data-handle]');
+  if (!h || !['ArrowUp', 'ArrowDown'].includes(e.key)) return;
+  e.preventDefault();
+  const from = +h.dataset.handle, to = from + (e.key === 'ArrowUp' ? -1 : 1);
+  moveRound(from, to);
+  document.querySelector(`[data-handle="${Math.min(Math.max(to, 0), editing.rounds.length - 1)}"]`)?.focus();
+});
+
 main.addEventListener('click', async (e) => {
   const btn = (a) => e.target.closest(`[data-${a}]`)?.dataset[a];
   const copy = btn('copy');
@@ -397,7 +632,7 @@ main.addEventListener('click', async (e) => {
   const live = btn('live');
   if (live) {
     const resp = await fetch(`/api/admin/games/${live}/sessions`, { method: 'POST' });
-    if (!resp.ok) return setStatus('Could not start a session');
+    if (!resp.ok) return setStatus('Could not start a session', true);
     const { code } = await resp.json();
     window.open(`/host/${code}`, '_blank', 'noopener');
     return loadList();
@@ -410,23 +645,29 @@ main.addEventListener('click', async (e) => {
     return loadList();
   }
   if (!editing) return;
-  if (e.target.id === 'addround') {
-    editing.rounds.push({ question: '', lat: NaN, lng: NaN });
+  const add = btn('add');
+  if (add) return addRound(add);
+  const delround = btn('delround');
+  if (delround !== undefined) {
+    const r = editing.rounds[+delround];
+    if (r.question.trim() && !confirm(`Delete round ${+delround + 1} “${r.question.trim()}”?`)) return;
+    editing.rounds.splice(+delround, 1);
+    if (editing.sel > +delround) editing.sel -= 1;
     editing.dirty = true; return render();
   }
-  if (e.target.id === 'rename') {
-    const t = (prompt('Game title?', editing.game.title) || '').trim();
-    if (t && t !== editing.game.title) { editing.game.title = t; editing.dirty = true; render(); }
-    return;
-  }
+  if (btn('handle') !== undefined) return;
+  const sel = btn('sel');
+  if (sel !== undefined) return select(+sel);
   const mappick = btn('mappick');
   if (mappick !== undefined) return openMapPicker(+mappick);
-  const up = btn('up'), down = btn('down'), delround = btn('delround'), delphoto = btn('delphoto');
-  const swap = (i, j) => { const r = editing.rounds; [r[i], r[j]] = [r[j], r[i]]; editing.dirty = true; render(); };
-  if (up !== undefined) return swap(+up, +up - 1);
-  if (down !== undefined) return swap(+down, +down + 1);
-  if (delround !== undefined) { editing.rounds.splice(+delround, 1); editing.dirty = true; return render(); }
+  const delphoto = btn('delphoto');
   if (delphoto !== undefined) { delete editing.rounds[+delphoto].photo; editing.dirty = true; return render(); }
+  const preset = btn('preset');
+  if (preset !== undefined) {
+    const [i, v] = preset.split(':'), r = editing.rounds[+i];
+    if (v) r.maxkm = +v; else delete r.maxkm;
+    editing.dirty = true; return render();
+  }
   const addopt = btn('addopt');
   if (addopt !== undefined) { editing.rounds[+addopt].spec.options.push(''); editing.dirty = true; return render(); }
   const delopt = btn('delopt');
@@ -444,6 +685,40 @@ main.addEventListener('click', async (e) => {
   }
 });
 
+// Typing: plain fields update state + the round list live, never re-rendering the card.
+main.addEventListener('input', (e) => {
+  if (!editing) return;
+  const t = e.target, d = t.dataset;
+  const r = editing.rounds[editing.sel];
+  if (d.q !== undefined) r.question = t.value;
+  else if (d.story !== undefined) r.story = t.value;
+  else if (d.answer !== undefined) { if (t.value.trim()) r.answer = t.value; else delete r.answer; }
+  else if (d.accept !== undefined) r.spec = { accept: t.value.split('\n').map((x) => x.trim()).filter(Boolean) };
+  else if (d.opt !== undefined) r.spec.options[+d.opt.split(':')[1]] = t.value;
+  else if (d.num !== undefined) {
+    const s = r.spec, k = d.num.split(':')[1], raw = t.value.trim();
+    if (k === 'unit') { if (raw) s.unit = raw; else delete s.unit; }
+    else if (raw === '') delete s[k];
+    else s[k] = Number(raw.replace(/[\s_']/g, '')); // NaN stays visible as a save problem
+    if (k === 'value') document.querySelector(`[data-num="${editing.sel}:halve"]`).placeholder = defaultHalve(s.value) || '10 % of answer';
+  } else if (d.radius !== undefined || d.maxkm !== undefined) {
+    const v = parseFloat(t.value), key = d.radius !== undefined ? 'radius' : 'maxkm';
+    if (Number.isFinite(v) && v > 0) r[key] = v; else delete r[key];
+    $('preview').innerHTML = previewHTML(r);
+    document.querySelectorAll('[data-preset]').forEach((b) => {
+      const on = (r.maxkm ?? null) === (b.dataset.preset.split(':')[1] ? +b.dataset.preset.split(':')[1] : null);
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+    });
+  } else return;
+  touched();
+  refreshProblem();
+});
+$('gtitle').addEventListener('input', (e) => {
+  if (!editing) return;
+  const t = e.target.value.trim();
+  if (t) { editing.game.title = t; touched(); }
+});
+
 main.addEventListener('change', async (e) => {
   if (!editing) return;
   const val = (a) => { const el = e.target.closest(`[data-${a}]`); return el ? [+el.dataset[a], el] : [null, null]; };
@@ -452,42 +727,14 @@ main.addEventListener('change', async (e) => {
   if (el) {
     const r = editing.rounds[i];
     if (typeFilled(r) && !confirm('Switch the question type? This round’s answer fields are cleared; question, photo and story stay.')) return render();
-    for (const k of ['spec', 'lat', 'lng', 'city', 'country', 'geometry', 'radius', 'shapeText', 'shapeLabel', 'shapeErr']) delete r[k];
+    for (const k of ['spec', 'lat', 'lng', 'city', 'country', 'geometry', 'radius', 'maxkm', 'shapeText', 'shapeLabel', 'shapeErr']) delete r[k];
     r.type = el.value;
     if (r.type === 'location') { r.lat = NaN; r.lng = NaN; } else r.spec = NEW_SPEC[r.type]();
     editing.dirty = true; return render();
   }
-  [i, el] = val('accept');
-  if (el) { editing.rounds[i].spec = { accept: el.value.split('\n').map((x) => x.trim()).filter(Boolean) }; editing.dirty = true; return render(); }
   const pair = (a) => { const t = e.target.closest(`[data-${a}]`); return t ? [...t.dataset[a].split(':'), t] : null; };
-  let p = pair('opt');
-  if (p) { editing.rounds[+p[0]].spec.options[+p[1]] = p[2].value; editing.dirty = true; return render(); }
-  p = pair('correct');
+  const p = pair('correct');
   if (p) { editing.rounds[+p[0]].spec.correct = +p[1]; editing.dirty = true; return render(); }
-  p = pair('num');
-  if (p) {
-    const s = editing.rounds[+p[0]].spec, k = p[1], raw = p[2].value.trim();
-    if (k === 'unit') { if (raw) s.unit = raw; else delete s.unit; }
-    else if (raw === '') delete s[k];
-    else s[k] = Number(raw.replace(/[\s_']/g, '')); // NaN stays visible as a save error
-    editing.dirty = true; return render();
-  }
-  [i, el] = val('q');
-  if (el) { editing.rounds[i].question = el.value; editing.dirty = true; return render(); }
-  [i, el] = val('story');
-  if (el) { editing.rounds[i].story = el.value; editing.dirty = true; return render(); }
-  [i, el] = val('answer');
-  if (el) {
-    const r = editing.rounds[i];
-    if (el.value.trim()) r.answer = el.value; else delete r.answer;
-    editing.dirty = true; return render();
-  }
-  [i, el] = val('radius');
-  if (el) {
-    const r = editing.rounds[i], v = parseFloat(el.value);
-    if (Number.isFinite(v) && v > 0) r.radius = v; else delete r.radius;
-    editing.dirty = true; return render();
-  }
   [i, el] = val('shape');
   if (el) {
     const r = editing.rounds[i], text = el.value.trim();
@@ -572,20 +819,12 @@ $('back').addEventListener('click', () => {
 });
 
 $('save').addEventListener('click', async () => {
-  const problem = (r) => {
-    if (!r.question.trim()) return 'needs a question';
-    const s = r.spec || {};
-    switch (typeOf(r)) {
-      case 'text': return s.accept && s.accept.length ? '' : 'needs at least one accepted answer';
-      case 'choice': return s.options.length >= 2 && s.options.every((o) => o.trim()) ? '' : 'needs 2–6 filled-in options';
-      case 'number':
-        if (!Number.isFinite(s.value)) return 'needs a number as its answer';
-        return ['tolerance', 'halve'].every((k) => s[k] == null || (Number.isFinite(s[k]) && (k === 'halve' ? s[k] > 0 : s[k] >= 0))) ? '' : 'has a margin that is not a number';
-      default: return r.shapeErr ? 'has a shape error — fix or clear the shape' : (Number.isFinite(r.lat) || r.geometry) ? '' : 'needs a location';
-    }
-  };
   const bad = editing.rounds.findIndex(problem);
-  if (bad !== -1) return alert(`Round #${bad + 1} ${problem(editing.rounds[bad])} before saving.`);
+  if (bad !== -1) {
+    const msg = `Round ${bad + 1} ${problem(editing.rounds[bad])}`;
+    editing.sel = bad; render();
+    return setStatus(msg, true);
+  }
   if ((editing.sessions || []).some((s) => s.state !== 'finished')
     && !confirm('A live session is running on this game. Saving changes the rounds under it. Continue?')) return;
   $('save').disabled = true;
@@ -599,18 +838,17 @@ $('save').addEventListener('click', async () => {
     if (resp.status === 400) {
       const d = await resp.json();
       if (Number.isInteger(d.round) && editing.rounds[d.round]) {
-        if (typeOf(editing.rounds[d.round]) === 'location') editing.rounds[d.round].shapeErr = d.error;
-        render();
-        document.querySelectorAll('.round')[d.round].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (typeOf(editing.rounds[d.round]) === 'location' && /shape/.test(d.error)) editing.rounds[d.round].shapeErr = d.error;
+        editing.sel = d.round; render();
       }
-      setStatus(d.error); $('save').disabled = false; return;
+      setStatus(d.error, true); $('save').disabled = false; return;
     }
     if (!resp.ok) throw new Error(resp.status);
     const d = await resp.json();
-    editing = { game: d.game, rounds: d.rounds, sessions: editing.sessions, dirty: false };
+    editing = { game: d.game, rounds: d.rounds, sessions: editing.sessions, dirty: false, sel: editing.sel };
     render();
     setStatus('Saved ' + new Date().toLocaleTimeString());
-  } catch { setStatus('Save failed — try again'); $('save').disabled = false; }
+  } catch { setStatus('Save failed — try again', true); $('save').disabled = false; }
 });
 
 window.addEventListener('beforeunload', (e) => {
