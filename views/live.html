@@ -279,7 +279,8 @@ function renderAnswerReveal(truth, guesses, roundChanged) {
   panel.scrollTop = 0;
 }
 
-function renderFinished() {
+function renderFinished(roundChanged) {
+  if (!roundChanged && !$('endov').hidden) return; // a rebroadcast / reconnect: don't replay the finale
   setQ('Thanks for playing!');
   $('panel').hidden = true;
   $('action').hidden = true;

@@ -217,11 +217,35 @@ body.stage:not(.host) #action[hidden] ~ .sheet { --sb: 16px; } /* live players h
 .podium .sc { font: 700 .8rem var(--mono); color: var(--muted); }
 .podium .blk { width: 100%; border-radius: 12px 12px 0 0; display: flex; justify-content: center; padding-top: 8px; font: 700 1.8rem var(--display); color: #1b2030;
   animation: grow .6s cubic-bezier(.3,1.3,.6,1) both; transform-origin: bottom; }
-.podium .p1 .blk { height: 130px; background: linear-gradient(#ffd15c, #d48a0a); color: #2a1a02; box-shadow: 0 0 36px rgba(255,176,32,.4); animation-delay: .5s; }
-.podium .p2 .blk { height: 96px; background: linear-gradient(#cfd6e6, #8e97ad); animation-delay: .25s; }
+.podium .p1 .blk { height: 130px; background: linear-gradient(#ffd15c, #d48a0a); color: #2a1a02; box-shadow: 0 0 36px rgba(255,176,32,.4); animation-delay: .9s; }
+.podium .p2 .blk { height: 96px; background: linear-gradient(#cfd6e6, #8e97ad); animation-delay: .45s; }
 .podium .p3 .blk { height: 70px; background: linear-gradient(#e2a46d, #9a5b2a); color: #2a1606; }
 .podium .p1 .nm, .podium .p1 .sc { color: var(--gold); }
 @keyframes grow { from { transform: scaleY(0); } }
+/* the finale: winner headline, staged podium (3rd, 2nd, 1st), sun rays behind the winner, rows ticking in */
+#board { display: flex; flex-direction: column; gap: 12px; }
+.champ { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.champ .crown { width: 44px; height: 44px; color: var(--gold); filter: drop-shadow(0 0 14px rgba(255,176,32,.6)); animation: crown .7s cubic-bezier(.3,1.6,.5,1) both; }
+.champ .flaps { font-size: 20px; justify-content: center; }
+@keyframes crown { from { transform: translateY(-24px) rotate(-12deg) scale(.4); opacity: 0; } }
+.you { align-self: center; font: 700 .78rem var(--mono); letter-spacing: .12em; text-transform: uppercase; padding: 5px 14px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid var(--line); animation: rise .4s ease .3s both; }
+.you.won { background: var(--gold); color: #2a1a02; border-color: transparent; }
+.podium .nm, .podium .sc { animation: rise .4s ease both; }
+.podium .p3 .nm, .podium .p3 .sc { animation-delay: .3s; }
+.podium .p2 .nm, .podium .p2 .sc { animation-delay: .75s; }
+.podium .p1 .nm, .podium .p1 .sc { animation-delay: 1.2s; }
+.podium .p1 .sc { font-size: 1rem; }
+.podium .p.me .nm { text-decoration: underline 2px var(--amber); text-underline-offset: 4px; }
+.podium .p1 { position: relative; }
+.podium .p1::before { content: ''; position: absolute; left: 50%; top: 40%; width: 260px; height: 260px; margin: -130px 0 0 -130px; z-index: -1; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,209,92,.18) 0 9deg, transparent 9deg 18deg);
+  -webkit-mask: radial-gradient(closest-side, #000 25%, transparent); mask: radial-gradient(closest-side, #000 25%, transparent);
+  animation: rays 18s linear infinite, show .6s ease 1.2s both; }
+@keyframes rays { to { transform: rotate(1turn); } }
+@keyframes show { from { opacity: 0; } }
+.board tr { animation: rise .35s ease both; animation-delay: calc(1.4s + var(--i, 0) * 70ms); }
+[data-theme="railway"] .board tr { animation-delay: calc(.6s + var(--i, 0) * 90ms); }
 .board { width: 100%; border-collapse: collapse; text-align: left; font-size: .95rem; }
 .board td { padding: 8px 4px; border-top: 1px solid var(--line); }
 .board td.r { width: 2.2em; font-family: var(--mono); color: var(--muted); }
@@ -230,7 +254,7 @@ body.stage:not(.host) #action[hidden] ~ .sheet { --sb: 16px; } /* live players h
 [data-theme="railway"] .board { font: 900 1.05rem var(--qfont); color: var(--amber); background: #050505; border-radius: 8px; }
 
 /* ---- confetti (perfect answers, game show) ---- */
-.confetti { position: fixed; inset: 0; z-index: 9; pointer-events: none; overflow: hidden; }
+.confetti { position: fixed; inset: 0; z-index: 11; pointer-events: none; overflow: hidden; }
 .confetti i { position: absolute; top: -20px; width: 9px; height: 15px; border-radius: 2px; animation: fall 1.4s cubic-bezier(.2,.6,.4,1) forwards; }
 @keyframes fall { to { transform: translate(var(--dx), 105vh) rotate(var(--rot)); opacity: .9; } }
 

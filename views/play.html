@@ -212,7 +212,7 @@ function showBoard(title, mine, leaderboard) {
   $('endtitle').textContent = title;
   $('endtotal').textContent = mine == null ? '' : `${mine} pts`;
   finalBoard($('board'), (leaderboard || []).map((p) => ({ name: p.player_name, total: p.total,
-    me: p.player_name.toLowerCase() === playerName.toLowerCase() })));
+    me: p.player_name.toLowerCase() === playerName.toLowerCase() })), 'leads'); // others can still play: a lead, not a win
   $('endov').hidden = false;
 }
 

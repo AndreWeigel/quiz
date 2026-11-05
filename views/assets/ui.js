@@ -60,21 +60,24 @@ export function countUp(node, to, prefix = '+') {
   requestAnimationFrame(step);
 }
 
-export function confetti() {
-  if (RM || theme !== 'gameshow') return;
+// A perfect answer: a quick game-show burst. The finale (`big`): a long shower in either theme.
+export function confetti(n = 36, big = false) {
+  if (RM || (theme !== 'gameshow' && !big)) return;
   const box = el('div', 'confetti');
-  const colors = ['#ffb020', '#ffd15c', '#22d3ee', '#c026d3', '#2563eb', '#14b8a6'];
-  for (let i = 0; i < 36; i++) {
+  const colors = theme === 'railway' ? ['#ffb020', '#f3ead7', '#1d4ed8', '#4ade80', '#ffffff']
+    : ['#ffb020', '#ffd15c', '#22d3ee', '#c026d3', '#2563eb', '#14b8a6'];
+  for (let i = 0; i < n; i++) {
     const p = el('i');
     p.style.left = `${Math.random() * 100}%`;
     p.style.background = colors[i % colors.length];
-    p.style.setProperty('--dx', `${(Math.random() - 0.5) * 160}px`);
+    p.style.setProperty('--dx', `${(Math.random() - 0.5) * (big ? 300 : 160)}px`);
     p.style.setProperty('--rot', `${(Math.random() - 0.5) * 900}deg`);
-    p.style.animationDelay = `${Math.random() * 0.25}s`;
+    p.style.animationDelay = `${Math.random() * (big ? 0.8 : 0.25)}s`;
+    if (big) p.style.animationDuration = `${1.8 + Math.random() * 1.4}s`;
     box.appendChild(p);
   }
   document.body.appendChild(box);
-  setTimeout(() => box.remove(), 1900);
+  setTimeout(() => box.remove(), big ? 4200 : 1900);
 }
 
 // The player's pin: drops in with a bounce and keeps a pulse ring (anchor: bottom).
@@ -290,28 +293,49 @@ export function stage(map, on) {
   spin = requestAnimationFrame(tick);
 }
 
-// Final board: podium + list (game show) or an arrivals board (railway).
-// rows: [{ name, total, me }] sorted best first.
-export function finalBoard(box, rows) {
+// Final board: the winner up top, then a podium + list (game show) or an arrivals board (railway).
+// rows: [{ name, total, me }] sorted best first. verb: 'wins' (live) or 'leads' (an open leaderboard).
+const CROWN = '<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z" fill="currentColor"/></svg>';
+export const ordinal = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+export function finalBoard(box, rows, verb = 'wins') {
   box.replaceChildren();
-  if (theme === 'gameshow' && rows.length >= 2) {
+  if (!rows.length) return;
+  const rank = [];
+  rows.forEach((r, i) => rank.push(i && r.total === rows[i - 1].total ? rank[i - 1] : i + 1)); // ties share a place
+  const top = rows.filter((_, i) => rank[i] === 1).map((r) => r.name);
+  const champ = box.appendChild(el('div', 'champ'));
+  champ.insertAdjacentHTML('beforeend', CROWN);
+  const who = top.join(' & ');
+  champ.appendChild(who.length <= 18 ? flaps(who, true) : el('div', 'ans', who));
+  champ.appendChild(el('div', 'note', `${top.length > 1 ? (verb === 'wins' ? 'share the win' : 'share the lead') : verb} with ${rows[0].total} pts`));
+  const mi = rows.findIndex((r) => r.me);
+  if (mi !== -1) box.appendChild(el('div', 'you' + (rank[mi] === 1 ? ' won' : ''),
+    rank[mi] === 1 ? (verb === 'wins' ? 'You won!' : 'You’re on top!') : `You came ${ordinal(rank[mi])} of ${rows.length}`));
+
+  const podium = theme === 'gameshow' && rows.length >= 2;
+  if (podium) {
     const pod = el('div', 'podium');
     for (const i of [1, 0, 2]) {
       const r = rows[i];
-      const p = el('div', `p p${i + 1}`);
-      if (r) p.append(el('span', 'nm', r.name), el('span', 'sc', `${r.total}`), el('div', 'blk', String(i + 1)));
+      const p = el('div', `p p${i + 1}${r && r.me ? ' me' : ''}`);
+      if (r) {
+        const sc = el('span', 'sc', '0');
+        p.append(el('span', 'nm', r.name), sc, el('div', 'blk', String(rank[i])));
+        setTimeout(() => countUp(sc, r.total, ''), RM ? 0 : [900, 450, 0][i]); // 3rd, 2nd, then 1st rise
+      }
       pod.appendChild(p);
     }
     box.appendChild(pod);
   }
   const table = el('table', 'board');
-  const from = theme === 'gameshow' && rows.length >= 2 ? 3 : 0;
-  rows.slice(from).forEach((r, j) => {
-    const i = from + j, tr = el('tr', r.me ? 'me' : '');
-    tr.appendChild(el('td', 'r', `${i + 1}`));
-    tr.appendChild(el('td', null, r.name));
-    tr.appendChild(el('td', 's', `${r.total}`));
+  rows.slice(podium ? 3 : 0).forEach((r, j) => {
+    const i = (podium ? 3 : 0) + j, tr = el('tr', r.me ? 'me' : '');
+    tr.style.setProperty('--i', j);
+    tr.append(el('td', 'r', `${rank[i]}`), el('td', null, r.name), el('td', 's', `${r.total}`));
     table.appendChild(tr);
   });
   if (table.children.length) box.appendChild(table);
+  const at = podium ? 1400 : 500; // when the winner's block has landed
+  setTimeout(() => confetti(120, true), at);
+  setTimeout(() => confetti(80, true), at + 1100);
 }
