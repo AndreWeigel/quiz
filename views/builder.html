@@ -206,6 +206,22 @@ let editing = null; // { game, rounds, sessions, dirty, sel }
 
 const fmtCoords = (r) => Number.isFinite(r.lat) ? `${r.lat}, ${r.lng}` : '';
 const fmtKm = (n) => Number(n).toLocaleString('en');
+// "53.958, -1.089" or Google Maps' degrees/minutes/seconds "53°57'28.9"N 1°05'20.6"W" → [lat, lng], or null.
+function parseCoords(text) {
+  const s = text.trim();
+  let lat, lng;
+  const dec = s.match(/^(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)$/);
+  if (dec) [lat, lng] = [+dec[1], +dec[2]];
+  else {
+    const parts = [...s.matchAll(/(\d+(?:\.\d+)?)\s*°\s*(?:(\d+(?:\.\d+)?)\s*['′’]\s*)?(?:(\d+(?:\.\d+)?)\s*["″”]\s*)?([NSEW])/gi)];
+    if (parts.length !== 2) return null;
+    for (const [, d, m = 0, sec = 0, h] of parts) {
+      const v = +((+d + m / 60 + sec / 3600) * (/[SW]/i.test(h) ? -1 : 1)).toFixed(6);
+      if (/[NS]/i.test(h)) lat = v; else lng = v;
+    }
+  }
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? [lat, lng] : null;
+}
 // Client-side read of pasted GeoJSON: enough to label it and place the anchor. The server re-validates.
 const KINDS = { Point: 'point', MultiPoint: 'point', LineString: 'line', MultiLineString: 'line', Polygon: 'area', MultiPolygon: 'area' };
 const ERR_180 = 'shapes that cross the 180° meridian are not supported';
@@ -328,7 +344,7 @@ function locationFields(r, i) {
     <div class="locrow">
       <input type="text" class="city" data-city="${i}" placeholder="City — type, then pick from the list" aria-label="City"
         value="${esc([r.city, r.country].filter(Boolean).join(', '))}" ${r.geometry ? 'disabled' : ''}>
-      <input type="text" class="coords" data-coords="${i}" placeholder="or lat, lng" aria-label="Coordinates (lat, lng)" value="${esc(fmtCoords(r))}" ${r.geometry ? 'disabled title="Anchor set from the shape"' : ''}>
+      <input type="text" class="coords" data-coords="${i}" placeholder="or coordinates — paste from Google Maps" aria-label="Coordinates (lat, lng)" value="${esc(fmtCoords(r))}" ${r.geometry ? 'disabled title="Anchor set from the shape"' : ''}>
       <button class="sm" data-mappick="${i}" title="${r.geometry ? 'Preview the shape on a map' : 'Pick the spot on a map'}" aria-label="Open the map">${ICON.map}</button>
       ${Number.isFinite(r.lat) ? `<span class="geo ok" title="Location set">${ICON.ok}</span>` : `<span class="geo no" title="No location yet">${ICON.warn}</span>`}
     </div>
@@ -750,9 +766,9 @@ main.addEventListener('change', async (e) => {
   [i, el] = val('coords');
   if (el) {
     const r = editing.rounds[i];
-    const m = el.value.trim().match(/^(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)$/);
+    const c = parseCoords(el.value);
     delete r.city; delete r.country;
-    if (m) { r.lat = +m[1]; r.lng = +m[2]; } else { r.lat = NaN; r.lng = NaN; }
+    [r.lat, r.lng] = c || [NaN, NaN];
     editing.dirty = true; return render();
   }
   [i, el] = val('photo');
@@ -773,6 +789,8 @@ main.addEventListener('change', async (e) => {
   delete r.city; delete r.country; r.lat = NaN; r.lng = NaN;
   editing.dirty = true;
   if (!q) return render();
+  const c = parseCoords(q); // coordinates pasted into the city box: take them as the spot
+  if (c) { [r.lat, r.lng] = c; return render(); }
   r.city = q; // fallback: raw text with ⚠ until a suggestion is picked
   let hits = [];
   try {
