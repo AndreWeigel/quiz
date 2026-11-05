@@ -14,6 +14,7 @@
   <div class="bar" id="bar"></div>
   <h1 class="q" id="question">Loading…</h1>
   <span class="hint" id="hint"></span>
+  <img class="qimg" id="qimg" alt="Image for this question" hidden>
 </div>
 <div id="answer" hidden></div>
 <button id="action" hidden></button>
@@ -32,7 +33,7 @@
 <div class="credit">Imagery © Esri &amp; contributors · MapLibre</div>
 <script type="module">
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
-import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum }
+import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage }
   from '/assets/ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -111,6 +112,7 @@ function startRound() {
   $('action').hidden = true;
   hud($('rno'), $('bar'), ord, game.rounds.length);
   setQ(round().question, w().hint[round().type]);
+  qImage($('qimg'), round());
   stage(map, !isLoc());
   $('answer').hidden = isLoc();
   if (!isLoc()) answerWidget($('answer'), round(), { onChange: (v) => { pick = v; readyAction(); }, onEnter: confirmGuess });
@@ -188,6 +190,7 @@ async function confirmGuess() {
   }
   showReveal(r, g);
   setQ(round().question);
+  qImage($('qimg'), null); // the reveal sheet needs the room
   $('action').textContent = ord === game.rounds.length - 1 ? w().results : w().next;
   $('action').hidden = false;
 }

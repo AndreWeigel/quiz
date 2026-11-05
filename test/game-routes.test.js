@@ -251,3 +251,18 @@ test('guess against a line: km to the nearest point, nearest returned, truth car
     assert.deepEqual(play.rounds.map((x) => [x.km, x.points]), [[111.2, 82], [0, 100]]);
   });
 });
+
+test('question image: saved, sent with the question, bad names rejected', async () => {
+  await withServer(async (base) => {
+    const g = await (await fetch(`${base}/api/admin/games`, {
+      method: 'POST', headers: json, body: JSON.stringify({ title: 't' }),
+    })).json();
+    const put = (rounds) => fetch(`${base}/api/admin/games/${g.id}`, { method: 'PUT', headers: json, body: JSON.stringify({ title: 't', rounds }) });
+    const round = { question: 'Name this part?', type: 'text', spec: { accept: ['bogie'] }, qphoto: 'a1b2c3d4e5f60718.jpg', photo: 'b1b2c3d4e5f60718.jpg' };
+    assert.equal((await put([round])).status, 200);
+    const pub = await (await fetch(`${base}/api/${g.slug}`)).json();
+    assert.equal(pub.rounds[0].qphoto, 'a1b2c3d4e5f60718.jpg');
+    assert.equal(pub.rounds[0].photo, undefined, 'the reveal photo stays hidden');
+    assert.equal((await put([{ ...round, qphoto: '../etc/passwd' }])).status, 400);
+  });
+});

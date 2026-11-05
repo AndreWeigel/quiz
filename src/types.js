@@ -110,6 +110,8 @@ const TYPES = {
 };
 
 const typeOf = (round) => TYPES[round.type || 'location'];
-const publicRound = (round) => ({ ord: round.ord, question: round.question, type: round.type || 'location', ...typeOf(round).publicRound(round) });
+// qphoto: the image shown with the question (the reveal's `photo` stays hidden until the reveal).
+const publicRound = (round) => ({ ord: round.ord, question: round.question, type: round.type || 'location',
+  ...(round.qphoto ? { qphoto: round.qphoto } : {}), ...typeOf(round).publicRound(round) });
 
 module.exports = { TYPES, typeOf, publicRound, optStr };

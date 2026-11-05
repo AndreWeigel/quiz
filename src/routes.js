@@ -18,9 +18,10 @@ function cleanRound(r) {
   const type = r.type ?? 'location';
   if (!question || !Object.hasOwn(TYPES, type)) return { error: 'invalid round' };
   if (r.photo != null && !PHOTO_FILE.test(r.photo)) return { error: 'invalid round' };
+  if (r.qphoto != null && !PHOTO_FILE.test(r.qphoto)) return { error: 'invalid round' };
   const own = TYPES[type].clean(r);
   if (own.error) return own;
-  return { round: { question, type, photo: r.photo || undefined, story: optStr(r.story), answer: optStr(r.answer), ...own } };
+  return { round: { question, type, photo: r.photo || undefined, qphoto: r.qphoto || undefined, story: optStr(r.story), answer: optStr(r.answer), ...own } };
 }
 
 module.exports = function gameRoutes({ basicAuth, dbPath = 'data/game.db', uploadsDir = 'data/uploads' }) {

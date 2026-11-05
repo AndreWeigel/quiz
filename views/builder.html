@@ -457,13 +457,18 @@ function renderEditor() {
           <button class="icon danger" data-delround="${i}" aria-label="Delete this round">${ICON.trash}</button>
         </div>
         <label class="f">Question<input type="text" class="qin" data-q="${i}" placeholder="${esc(Q_HINT[typeOf(r)])}" value="${esc(r.question)}"></label>
+        <div class="f">Image with the question <small>optional — players see it while answering, e.g. “What is this part called?”</small></div>
+        <div class="phrow">
+          ${r.qphoto ? `<img src="/uploads/${esc(r.qphoto)}" alt=""><button class="icon danger" data-delqphoto="${i}" aria-label="Remove question image">${ICON.trash}</button>`
+                     : `<label class="addph">+ image<input type="file" accept="image/*" data-qphoto="${i}" hidden></label>`}
+        </div>
         ${typeOf(r) === 'location' ? locationFields(r, i) : typeFields(r, i)}
       </div>
       ${typeOf(r) === 'location' ? scoringFields(r, i) : ''}
       <div class="card"><h3>The reveal</h3>
         <label class="f">Answer label <small>optional — ${typeOf(r) === 'location' ? 'e.g. Tanggula, Qinghai–Tibet Railway, China' : 'defaults to the right answer'}</small>
           <input type="text" data-answer="${i}" value="${esc(r.answer || '')}"></label>
-        <div class="f">Photo <small>optional</small></div>
+        <div class="f">Reveal photo <small>optional — only shown after the answer</small></div>
         <div class="phrow">
           ${r.photo ? `<img src="/uploads/${esc(r.photo)}" alt=""><button class="icon danger" data-delphoto="${i}" aria-label="Remove photo">${ICON.trash}</button>`
                     : `<label class="addph">+ photo<input type="file" accept="image/*" data-photo="${i}" hidden></label>`}
@@ -678,6 +683,8 @@ main.addEventListener('click', async (e) => {
   if (mappick !== undefined) return openMapPicker(+mappick);
   const delphoto = btn('delphoto');
   if (delphoto !== undefined) { delete editing.rounds[+delphoto].photo; editing.dirty = true; return render(); }
+  const delqphoto = btn('delqphoto');
+  if (delqphoto !== undefined) { delete editing.rounds[+delqphoto].qphoto; editing.dirty = true; return render(); }
   const preset = btn('preset');
   if (preset !== undefined) {
     const [i, v] = preset.split(':'), r = editing.rounds[+i];
@@ -771,15 +778,17 @@ main.addEventListener('change', async (e) => {
     [r.lat, r.lng] = c || [NaN, NaN];
     editing.dirty = true; return render();
   }
-  [i, el] = val('photo');
-  if (el && el.files[0]) {
+  for (const key of ['photo', 'qphoto']) { // reveal photo / question image: same upload
+    [i, el] = val(key);
+    if (!el || !el.files[0]) continue;
     const f = el.files[0], r = editing.rounds[i];
+    setStatus('Uploading…');
     try {
       const resp = await fetch('/api/upload', { method: 'POST', headers: { 'content-type': f.type }, body: f });
       if (!resp.ok) throw new Error(resp.status);
-      r.photo = (await resp.json()).file;
+      r[key] = (await resp.json()).file;
       editing.dirty = true; render();
-    } catch { alert('Upload failed — jpeg/png/webp/gif up to 8 MB.'); }
+    } catch { setStatus('Upload failed — jpeg/png/webp/gif up to 8 MB', true); }
     return;
   }
   [i, el] = val('city');

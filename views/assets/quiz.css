@@ -54,6 +54,13 @@ body.loc .maplibregl-canvas-container.maplibregl-interactive {
 .bar i.done { background: var(--amber); }
 .bar i.now { background: var(--gold); box-shadow: 0 0 8px var(--amber); }
 .top .q { margin: 0; font: 700 1.15rem/1.25 var(--qfont); }
+/* the question's image: framed under the question, tap for full screen */
+.qimg { display: block; align-self: center; max-width: 100%; max-height: min(30vh, 300px); object-fit: contain; cursor: zoom-in;
+  border-radius: calc(var(--r) - 4px); border: 1px solid var(--line); background: rgba(0,0,0,.35); }
+.qbig { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(0,0,0,.92); cursor: zoom-out; }
+.qbig img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+@media (max-height: 720px) { .qimg { max-height: 22vh; } }
 .top .hint { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; font: 700 .68rem var(--mono);
   letter-spacing: .12em; text-transform: uppercase; color: #0b0f1f; background: var(--cyan); padding: 3px 10px; border-radius: 999px; }
 .top .hint:empty { display: none; }

@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS rounds (
   lat      REAL,
   lng      REAL,
   city     TEXT, country TEXT, photo TEXT, story TEXT,
-  answer   TEXT, radius REAL, geometry TEXT, maxkm REAL,
+  answer   TEXT, radius REAL, geometry TEXT, maxkm REAL, qphoto TEXT,
   UNIQUE(game_id, ord)
 );
 CREATE TABLE IF NOT EXISTS plays (
@@ -99,6 +99,7 @@ function openGameDb(dbPath) {
   if (!cols.includes('radius')) db.exec('ALTER TABLE rounds ADD COLUMN radius REAL');
   if (!cols.includes('geometry')) db.exec('ALTER TABLE rounds ADD COLUMN geometry TEXT');
   if (!cols.includes('maxkm')) db.exec('ALTER TABLE rounds ADD COLUMN maxkm REAL');
+  if (!cols.includes('qphoto')) db.exec('ALTER TABLE rounds ADD COLUMN qphoto TEXT');
   // Files created before 2026-10-27 have location-only rounds and guesses with
   // NOT NULL coordinates. ALTER can't drop NOT NULL, so rebuild the three tables.
   if (!cols.includes('type')) {
@@ -118,8 +119,8 @@ function openGameDb(dbPath) {
   }
 
   const insertRound = db.prepare(`
-    INSERT INTO rounds (game_id, ord, question, type, spec, lat, lng, city, country, photo, story, answer, radius, maxkm, geometry)
-    VALUES (@game_id, @ord, @question, @type, @spec, @lat, @lng, @city, @country, @photo, @story, @answer, @radius, @maxkm, @geometry)
+    INSERT INTO rounds (game_id, ord, question, type, spec, lat, lng, city, country, photo, qphoto, story, answer, radius, maxkm, geometry)
+    VALUES (@game_id, @ord, @question, @type, @spec, @lat, @lng, @city, @country, @photo, @qphoto, @story, @answer, @radius, @maxkm, @geometry)
   `);
   const insertGuess = db.prepare(`
     INSERT INTO guesses (play_id, round_ord, lat, lng, km, answer, points)
@@ -138,7 +139,7 @@ function openGameDb(dbPath) {
     rounds.forEach((r, ord) => insertRound.run({
       game_id: id, ord, question: r.question, type: r.type || 'location', spec: r.spec ? JSON.stringify(r.spec) : null,
       lat: r.lat ?? null, lng: r.lng ?? null,
-      city: r.city ?? null, country: r.country ?? null, photo: r.photo ?? null, story: r.story ?? null,
+      city: r.city ?? null, country: r.country ?? null, photo: r.photo ?? null, qphoto: r.qphoto ?? null, story: r.story ?? null,
       answer: r.answer ?? null, radius: r.radius ?? null, maxkm: r.maxkm ?? null,
       geometry: r.geometry ? JSON.stringify(r.geometry) : null,
     }));

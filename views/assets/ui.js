@@ -129,6 +129,22 @@ export function answerWidget(box, round, { onChange = () => {}, onEnter = () => 
 }
 
 // Round counter + progress segments in the top bar.
+// The image shown with a question (round.qphoto), or none when round is null / has none.
+// Tap opens it full screen (an overlay on <body>: .top is transformed, so it can't host a fixed child).
+export function qImage(img, round) {
+  const src = round && round.qphoto ? `/uploads/${round.qphoto}` : null;
+  img.onclick = () => {
+    const ov = el('div', 'qbig'), big = el('img');
+    big.src = img.src; big.alt = img.alt;
+    ov.append(big);
+    ov.onclick = () => ov.remove();
+    document.body.append(ov);
+  };
+  if (!src) { img.hidden = true; img.removeAttribute('src'); document.querySelector('.qbig')?.remove(); return; }
+  if (img.getAttribute('src') !== src) img.src = src;
+  img.hidden = false;
+}
+
 export function hud(rnoBox, barBox, ordIdx, count) {
   rnoBox.replaceChildren(ordIdx == null ? '' : flaps(`${String(ordIdx + 1).padStart(2, '0')}/${String(count).padStart(2, '0')}`));
   barBox.replaceChildren(...Array.from({ length: ordIdx == null ? 0 : count },
