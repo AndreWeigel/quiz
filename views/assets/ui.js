@@ -3,6 +3,10 @@
 // text (questions, options, names) only ever goes in via textContent.
 export const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// The question card's height as --toph, so the reveal sheet can take exactly the room below it.
+const topCard = document.querySelector('.top');
+if (topCard) new ResizeObserver(() => document.documentElement.style.setProperty('--toph', `${topCard.offsetHeight}px`)).observe(topCard);
+
 export const el = (tag, cls, text) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -259,6 +263,14 @@ export function hud(rnoBox, barBox, ordIdx, count) {
 
 // Globe as backdrop: dimmed + drifting on non-location rounds, sharp otherwise.
 let spin = 0;
+// Globe padding for a reveal, clear of the question card and the result sheet:
+// on the right on wide screens, across the bottom on phones (always leaving a strip of globe for the pins).
+export function revealPadding(sheet, left = 60) {
+  const top = (topCard ? topCard.offsetHeight : 170) + 20;
+  if (innerWidth >= 700) return { top, bottom: 110, left, right: 380 };
+  return { top, bottom: Math.max(60, Math.min(sheet.offsetHeight + 110, innerHeight - top - 120)), left: 40, right: 40 };
+}
+
 export function stage(map, on) {
   document.body.classList.toggle('stage', on);
   document.body.classList.toggle('loc', !on);

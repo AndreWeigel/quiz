@@ -163,8 +163,9 @@ body.stage .top .q { font-size: clamp(1.6rem, 5.4vw, 2.6rem); line-height: 1.12;
 .sheet { position: fixed; top: 150px; right: 14px; z-index: 4; width: min(340px, calc(100vw - 28px)); max-height: calc(100dvh - 250px);
   overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px;
   box-shadow: 0 10px 34px rgba(0,0,0,.55); display: flex; flex-direction: column; gap: 10px; animation: rise .35s ease both; }
-body.stage .sheet { left: 50%; right: auto; transform: translateX(-50%); top: auto; bottom: 96px; width: min(560px, calc(100vw - 24px));
-  max-height: calc(100dvh - 300px); animation-name: rise-c; }
+body.stage .sheet { --sb: 96px; left: 50%; right: auto; transform: translateX(-50%); top: auto; bottom: var(--sb); width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - var(--toph, 200px) - 28px - var(--sb)); animation-name: rise-c; } /* everything below the question card */
+body.stage:not(.host) #action[hidden] ~ .sheet { --sb: 16px; } /* live players have no Next button */
 @keyframes rise { from { transform: translateY(12px); opacity: 0; } }
 @keyframes rise-c { from { transform: translate(-50%, 12px); opacity: 0; } to { transform: translateX(-50%); } }
 .verdict { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font: 700 .72rem var(--mono); letter-spacing: .14em;
@@ -177,6 +178,8 @@ body.stage .sheet { left: 50%; right: auto; transform: translateX(-50%); top: au
 .sheet .flaps { font-size: 17px; }
 .sheet h2 { margin: 0; font: 700 .7rem var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .sheet img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+.sheet > img { flex: 0 1 auto; min-height: 110px; max-height: 40dvh; object-fit: contain; background: rgba(0,0,0,.25); }
+/* the reveal photo: whole (never cropped), and the one thing that shrinks so photo + story fit without scrolling */
 .story { font-size: .92rem; line-height: 1.5; white-space: pre-wrap; }
 .opts-r .o { display: flex; gap: 10px; align-items: center; font-size: .92rem; padding: 4px 0; color: var(--muted); }
 .opts-r .o .c { margin-left: auto; font: 700 .85rem var(--mono); }
@@ -191,7 +194,7 @@ body.stage .sheet { left: 50%; right: auto; transform: translateX(-50%); top: au
 [data-theme="railway"] .verdict.perfect { background: var(--good); } [data-theme="railway"] .verdict.wrong { background: var(--bad); color: #1b0606; }
 [data-theme="railway"] .pts { font-family: var(--qfont); color: var(--amber); }
 [data-theme="railway"] .story { background: #f3ead7; color: #1d1a14; border-radius: 8px; padding: 12px 14px; font-size: .9rem; }
-@media (max-width: 699px) { .sheet { top: auto; bottom: 92px; right: 12px; max-height: 46dvh; } .sheet img { max-height: 120px; object-fit: cover; } }
+@media (max-width: 699px) { .sheet { top: auto; bottom: 92px; right: 12px; max-height: calc(100dvh - var(--toph, 200px) - 120px); } .sheet > img { max-height: 30dvh; } }
 
 /* ---- overlays: name, final board ---- */
 .ov { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(7,11,28,.72); backdrop-filter: blur(4px); padding: 16px; }

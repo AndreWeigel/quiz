@@ -33,7 +33,7 @@
 <div class="credit">Imagery © Esri &amp; contributors · MapLibre</div>
 <script type="module">
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
-import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage, labelReveal }
+import { RM, el, applyTheme, w, verdictChip, flaps, countUp, confetti, pinElement, answerWidget, hud, stage, finalBoard, fmtNum, qImage, labelReveal, revealPadding }
   from '/assets/ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -182,6 +182,8 @@ async function confirmGuess() {
   } catch { phase = 'guess'; $('action').hidden = false; setQ(round().question, 'Network hiccup — try again', true); return; }
   guesses.push({ ord: round().ord, ...g });
   $('answer').hidden = true;
+  qImage($('qimg'), null); // the reveal sheet needs the room
+  showReveal(r, g);
   if (isLoc()) {
     const { lat, lng } = g;
     const tf = truthFeature(r.truth);
@@ -189,12 +191,9 @@ async function confirmGuess() {
     map.getSource('line').setData({ type: 'Feature', geometry: {
       type: 'LineString', coordinates: [[lng, lat], [r.nearest.lng, r.nearest.lat]] } });
     const bounds = extendBy(new maplibregl.LngLatBounds([lng, lat], [lng, lat]), tf.geometry);
-    const padding = innerWidth < 700 ? { top: 190, bottom: innerHeight * 0.5, left: 40, right: 40 } : { top: 170, bottom: 110, left: 60, right: 380 };
-    map.fitBounds(bounds, { padding, maxZoom: 9, duration: RM ? 0 : 1200 });
+    map.fitBounds(bounds, { padding: revealPadding($('reveal')), maxZoom: 9, duration: RM ? 0 : 1200 });
   }
-  showReveal(r, g);
   setQ(round().question);
-  qImage($('qimg'), null); // the reveal sheet needs the room
   $('action').textContent = ord === game.rounds.length - 1 ? w().results : w().next;
   $('action').hidden = false;
 }
